@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>暨柴工作委託平台</title>
+<style>
+  :root {
+    --pink-light: #FFF8F9;
+    --pink-nav: #FEDFE5;
+    --pink-active-tab: #FDBDCB;
+    --theme-red: #FF5E7E;
+    --text: #333;
+    --text-light: #555;
+    --white: #FFFFFF;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  }
+
+  body {
+    font-family: "Noto Sans TC", sans-serif;
+    background-color: var(--pink-light);
+    color: var(--text);
+    margin: 0;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .edit-container {
+    background-color: var(--white);
+    padding: 40px 50px;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    max-width: 700px;
+    width: 100%;
+  }
+
+  h1 {
+    color: var(--theme-red);
+    font-size: 26px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  p.desc {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 14px;
+    margin-bottom: 30px;
+  }
+
+  form div { margin-bottom: 20px; }
+
+  label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  input[type="file"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-sizing: border-box;
+    font-size: 15px;
+    transition: 0.3s;
+  }
+
+  input:focus, textarea:focus {
+    border-color: var(--theme-red);
+    outline: none;
+    box-shadow: 0 0 5px rgba(255, 94, 126, 0.3);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .file-info {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-top: 5px;
+  }
+
+  .btn-area {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+  }
+
+  button {
+    background-color: var(--theme-red);
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background-color: #ff7b9d;
+  }
+
+  a.cancel {
+    color: var(--theme-red);
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 20px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    transition: background-color 0.3s;
+  }
+
+  a.cancel:hover {
+    background-color: var(--pink-active-tab);
+  }
+
+</style>
+</head>
+<body>
+
+  <div class="edit-container">
+    <h1>編輯專案</h1>
+    <p class="desc">修改你的專案內容（注意：專案選標後將無法修改）</p>
+
+    <form action="/client/project/{{ project.id }}/edit" method="post" enctype="multipart/form-data">
+      <div>
+        <label for="title">專案標題：</label>
+        <input type="text" id="title" name="title" value="{{ project.title }}" required>
+      </div>
+
+      <div>
+        <label for="description">專案描述：</label>
+        <textarea id="description" name="description" rows="5">{{ project.description }}</textarea>
+      </div>
+
+      <div>
+        <label for="budget">預算 ($)：</label>
+        <input type="number" id="budget" name="budget" value="{{ project.budget }}" step="0.01">
+      </div>
+
+      <div>
+        <label for="deadline">截止日期：</label>
+        <input type="date" id="deadline" name="deadline" value="{{ project.deadline.strftime('%Y-%m-%d') if project.deadline else '' }}" required>
+      </div>
+
+      <div>
+        <label for="attachment">更新附件 (選填)：</label>
+        <input type="file" id="attachment" name="attachment">
+        {% if project.attachment_url %}
+        <p class="file-info">
+          目前附件：<a href="{{ project.attachment_url }}" target="_blank">{{ project.attachment_url }}</a>
+        </p>
+        {% endif %}
+      </div>
+
+      <div class="btn-area">
+        <button type="submit">💾 儲存變更</button>
+        <a href="/client/project/{{ project.id }}/manage" class="cancel">取消</a>
+      </div>
+    </form>
+  </div>
+
+</body>
+</html>

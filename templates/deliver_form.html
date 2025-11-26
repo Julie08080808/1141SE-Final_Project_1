@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>暨柴工作委託平台</title>
+<style>
+  :root {
+    --pink-light: #FFF8F9;
+    --pink-nav: #FEDFE5;
+    --theme-red: #FF5E7E;
+    --text: #333;
+    --text-light: #555;
+    --white: #FFFFFF;
+    --border-color: #EEE;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  }
+
+  body {
+    font-family: "Noto Sans TC", sans-serif;
+    background-color: var(--pink-light);
+    color: var(--text);
+    margin: 0;
+  }
+
+  /* 🌸 頂部導覽列 */
+  .top-header {
+    background-color: var(--pink-nav);
+    padding: 10px 30px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 80px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-area img {
+    width: 50px;
+    height: 50px;
+  }
+
+  .logo-text {
+    font-weight: bold;
+    color: var(--text);
+    font-size: 18px;
+  }
+
+  .top-nav a {
+    margin: 0 15px;
+    padding: 8px 18px;
+    text-decoration: none;
+    color: var(--text-light);
+    font-weight: 500;
+    border-radius: 10px;
+    transition: 0.3s;
+  }
+
+  .top-nav a.active, .top-nav a:hover {
+    background-color: var(--white);
+    color: var(--theme-red);
+  }
+
+  .user-info {
+    margin-left: auto;
+    font-size: 16px;
+  }
+
+  .user-info a {
+    color: var(--text-light);
+    text-decoration: none;
+    margin-left: 15px;
+  }
+
+  /* 主體內容 */
+  .main-container {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+
+  .form-card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: var(--shadow);
+  }
+
+  h1 {
+    color: var(--theme-red);
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 24px;
+  }
+
+  .subtitle {
+    color: var(--text-light);
+    margin-bottom: 30px;
+    font-size: 15px;
+  }
+
+  .form-group {
+    margin-bottom: 25px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text);
+    font-size: 15px;
+  }
+
+  input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px dashed var(--border-color);
+    border-radius: 10px;
+    background-color: #fafafa;
+    cursor: pointer;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+  }
+
+  input[type="file"]:hover {
+    border-color: var(--theme-red);
+    background-color: #fff5f7;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-family: "Noto Sans TC", sans-serif;
+    font-size: 14px;
+    resize: vertical;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--theme-red);
+  }
+
+  .button-group {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+  }
+
+  .btn-submit {
+    background-color: var(--theme-red);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .btn-submit:hover {
+    background-color: #ff7b9d;
+  }
+
+  .btn-cancel {
+    background-color: #f0f0f0;
+    color: var(--text);
+    border: none;
+    padding: 12px 30px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: inline-block;
+  }
+
+  .btn-cancel:hover {
+    background-color: #e0e0e0;
+  }
+
+  .info-box {
+    background-color: #fff3cd;
+    border: 1px solid #ffd966;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 25px;
+    font-size: 14px;
+    color: #856404;
+  }
+
+  .info-box strong {
+    display: block;
+    margin-bottom: 5px;
+  }
+</style>
+</head>
+<body>
+
+<!-- 主體內容 -->
+<div class="main-container">
+  <div class="form-card">
+    <h1>📦 交付專案：{{ project.title.strip() }}</h1>
+    <p class="subtitle">請上傳您的專案交付檔案，並附上相關說明</p>
+
+    <div class="info-box">
+      <strong>💡 提示：</strong>
+      上傳檔案後，委託人將會收到通知進行審核。請確保檔案完整且符合專案需求。
+    </div>
+
+    <form action="/contractor/project/{{ project.id }}/deliver" method="post" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="file">📎 交付檔案 *</label>
+        <input type="file" id="file" name="file" required>
+      </div>
+
+      <div class="form-group">
+        <label for="note">📝 備註說明（選填）</label>
+        <textarea id="note" name="note" rows="5" placeholder="例如：檔案說明、使用方式、注意事項等..."></textarea>
+      </div>
+
+      <div class="button-group">
+        <button type="submit" class="btn-submit">✅ 提交檔案</button>
+        <a href="/contractor/my-bids" class="btn-cancel">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>

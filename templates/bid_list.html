@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>暨柴工作委託平台</title>
+
+<!-- 🎨 CSS 主題樣式區 -->
+<style>
+  /* --- 🩷 主題顏色變數設定 --- */
+  :root {
+    --pink-light: #FFE6EB;   /* 整體背景粉色（柔和） */
+    --pink-nav: #FFC8D0;     /* 導覽列粉色 */
+    --pink-active-tab: #FF9FB3; /* hover 的更深粉 */
+    --theme-red: #FF4B6E;    /* 主題紅粉（強調色） */
+    --text: #2a2a2a;         /* 主要文字顏色 */
+    --text-light: #555;      /* 較淺文字顏色 */
+    --white: #FFFFFF;        /* 白色背景 */
+    --border-color: #DDD;    /* 邊框灰線 */
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* 陰影 */
+  }
+
+  /* --- 🧱 全域樣式設定 --- */
+  body {
+    font-family: "Noto Sans TC", sans-serif; /* 字型 */
+    background-color: var(--pink-light);     /* 粉色背景 */
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+  }
+
+  /* --- 🌸 頁首樣式 --- */
+  header {
+    background-color: var(--pink-nav);       /* 導覽背景 */
+    color: var(--text);
+    padding: 15px 40px;                      /* 內距 */
+    display: flex;
+    justify-content: space-between;          /* 左右排列 */
+    align-items: center;
+    box-shadow: var(--shadow);
+  }
+
+  header h2 {
+    color: var(--theme-red);                 /* 標題文字紅色 */
+    margin: 0;
+  }
+
+  /* 返回按鈕樣式 */
+  header a {
+    color: var(--white);
+    text-decoration: none;
+    font-weight: bold;
+    background: var(--theme-red);
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: background-color 0.3s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  header a:hover {
+    background-color: #e04063;               /* hover 時變深色 */
+  }
+
+  /* --- 📦 主要內容區塊 --- */
+  main {
+    max-width: 1000px;                       /* 最大寬度 */
+    margin: 40px auto;                       /* 置中 */
+    background-color: var(--white);          /* 白色背景 */
+    border-radius: 15px;                     /* 圓角 */
+    padding: 40px 50px;                      /* 內距 */
+    box-shadow: var(--shadow);               /* 陰影 */
+  }
+
+  /* 標題樣式 */
+  h1 {
+    color: var(--theme-red);
+    margin-top: 0;
+  }
+
+  h2 {
+    border-left: 5px solid var(--theme-red); /* 左側紅線 */
+    padding-left: 10px;
+    margin-top: 35px;
+    color: black;
+  }
+
+  /* --- 📄 專案內容區塊 --- */
+  .project-details {
+    background-color: #fff2f5;
+    border: 1px solid #ffb3c2;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+  }
+
+  .project-details p {
+    margin: 8px 0;
+  }
+
+  .project-details a {
+    color: var(--theme-red);
+    text-decoration: none;
+  }
+
+  .project-details a:hover {
+    text-decoration: underline;
+  }
+
+  /* --- 📊 表格樣式 --- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  th, td {
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 10px;
+    text-align: left;
+    font-size: 15px;
+  }
+
+  th {
+    background-color: #ffeef1; /* 標題列底色 */
+    color: var(--text-light);
+  }
+
+  tr:hover {
+    background-color: #fff4f7; /* 滑過整列變淡粉 */
+  }
+
+  /* --- 🧷 按鈕樣式 --- */
+  button {
+    background-color: var(--theme-red);
+    color: white;
+    border: 2px solid var(--theme-red); /* 增加邊框 */
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  button:hover {
+    background-color: #e04063;
+    border-color: #e04063; /* hover 時邊框變色 */
+  }
+
+  button:focus {
+    outline: none; /* 移除原本的 focus 外框 */
+  }
+
+  /* ✅ 狀態按鈕顏色：通過/退件 */
+  button[style*="d4edda"] {
+    background-color: #e9f6eb !important; /* 綠色按鈕背景 */
+    color: #20663b;
+    border: 1px solid #cde5cf;
+  }
+
+  button[style*="f8d7da"] {
+    background-color: #fde2e4 !important; /* 紅色按鈕背景 */
+    color: #8a1b2f;
+    border: 1px solid #f2b6c1;
+  }
+
+  /* 頁尾樣式 */
+  footer {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-light);
+    margin: 40px 0 20px;
+  }
+
+  .action-links {
+    margin-top: 10px;
+  }
+
+  .action-links a button {
+    margin-left: 10px;
+  }
+</style>
+</head>
+
+<body>
+<!-- 🌸 頁首區：標題與返回儀表板按鈕 -->
+<header>
+  <h2>🌻 管理專案</h2> <!-- 左邊主標 -->
+  <a href="/client/dashboard">返回我的儀表板</a> <!-- 右邊按鈕 -->
+</header>
+
+<!-- 📦 主內容區 -->
+<main>
+  <h1>我的專案：{{ project.title.strip() }}</h1> <!-- 顯示專案名稱 -->
+
+  <!-- ✏️ 若專案開放中可編輯 -->
+  <div class="action-links">
+    {% if project.status.strip() == 'open' %}
+      <a href="/client/project/{{ project.id }}/edit">
+        <button>✏️ 編輯專案內容</button>
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- 📋 專案詳細資料 -->
+  <div class="project-details">
+    <h3>📋 專案詳情</h3>
+    <p><strong>目前狀態：</strong> {{ project.status.strip() }}</p>
+    <p><strong>預算：</strong> ${{ "%.2f"|format(project.budget) }}</p>
+    <p><strong>截止日期：</strong> {{ project.deadline.strftime('%Y-%m-%d') if project.deadline else 'N/A' }}</p>
+    <p><strong>專案描述：</strong><br>
+      {{ project.description | safe | replace('\n', '<br>') }}
+    </p>
+    {% if project.attachment_url %}
+      <p><strong>專案附件：</strong>
+        <a href="{{ project.attachment_url }}" target="_blank">📎 點此下載附件</a>
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- 💰 收到的報價區塊 -->
+  <h2>💰 收到的報價</h2>
+  {% if bids %}
+    <table>
+      <thead>
+        <tr>
+          <th>接案人</th>
+          <th>報價金額</th>
+          <th>留言</th>
+          <th>狀態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bid in bids %}
+        <tr>
+          <td>{{ bid.contractor_name.strip() }}</td>
+          <td>${{ "%.2f"|format(bid.price) }}</td>
+          <td>{{ bid.message }}</td>
+          <td>{{ bid.status.strip() }}</td>
+          <td>
+            {% if bid.status.strip() == 'pending' and project.status.strip() == 'open' %}
+              <!-- 按下按鈕可選擇此報價為得標者 -->
+              <form action="/client/project/{{ project.id }}/select/{{ bid.id }}" method="post" style="margin:0;">
+                <button type="submit">選擇此報價</button>
+              </form>
+            {% elif bid.status.strip() == 'accepted' %}
+              <strong>✅ 已得標</strong>
+            {% elif bid.status.strip() == 'rejected' %}
+              (未得標)
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p style="color:#888;">這個專案目前還沒有人報價。</p>
+  {% endif %}
+
+  <!-- 📦 若專案有交付檔案（非 open 狀態才會顯示） -->
+  {% if project.status.strip() in ['submitted', 'completed', 'in_progress'] %}
+  <h2>📦 交付的檔案</h2>
+
+  {% if deliverables %}
+    <table>
+      <thead>
+        <tr>
+          <th>交付時間</th>
+          <th>檔案連結</th>
+          <th>備註</th>
+          <th>狀態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for deliverable in deliverables %}
+        <tr>
+          <td>{{ deliverable.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td><a href="{{ deliverable.file_url }}" target="_blank">點此查看</a></td>
+          <td>{{ deliverable.note }}</td>
+          <td>{{ deliverable.status.strip() }}</td>
+          <td>
+            {% if deliverable.status.strip() == 'submitted' %}
+              <!-- ✅ 接受成果並結案 -->
+              <form action="/client/project/{{ project.id }}/deliverable/{{ deliverable.id }}/approve" method="post" style="display:inline;">
+                <button type="submit" style="background-color: #d4edda;">✅ 接受並結案</button>
+              </form>
+              <!-- ❌ 駁回成果 -->
+              <form action="/client/project/{{ project.id }}/deliverable/{{ deliverable.id }}/reject" method="post" style="display:inline;">
+                <button type="submit" style="background-color: #f8d7da;">❌ 退件</button>
+              </form>
+            {% elif deliverable.status.strip() == 'accepted' %}
+              (已結案)
+            {% elif deliverable.status.strip() == 'rejected' %}
+              (已退件，等待接案人重傳)
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p style="color:#888;">接案人尚未交付任何檔案。</p>
+  {% endif %}
+  {% endif %}
+
+  <!-- 🔙 返回上一頁按鈕 -->
+  <br/>
+  <div style="text-align:center; margin-top: 20px;">
+    <button onclick="window.history.back()" 
+        style="background-color: var(--theme-red); color: white; border: 2px solid var(--theme-red);
+               padding: 10px 18px; font-size: 16px; font-weight: bold; cursor: pointer;
+               border-radius: 10px; transition: background 0.3s, border-color 0.3s;">
+     ⬅ 返回上一頁
+    </button>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>暨柴工作委託平台</title>
+<style>
+  :root {
+    --pink: #FFB7C3;
+    --pink-light: #FFE4E1;
+    --theme: #FF5E7E;
+    --gray: #f4f4f4;
+    --text: #333;
+  }
+  body { font-family: "Noto Sans TC", sans-serif; background-color: var(--pink-light); color: var(--text); margin: 0; padding: 0; }
+  header { background-color: var(--pink); color: white; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  header a { color: white; text-decoration: none; font-weight: bold; }
+  header a:hover { text-decoration: underline; }
+  main { max-width: 900px; margin: 40px auto; background-color: white; border-radius: 15px; padding: 30px 40px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+  h1 { color: var(--theme); margin-top: 0; }
+  h2, h3 { color: var(--theme); }
+  .project-meta { background-color: #fff6f8; border: 1px solid #f2c7d1; border-radius: 10px; padding: 20px; margin-top: 10px; }
+  .project-meta p { margin: 6px 0; }
+  .project-meta a { color: var(--theme); text-decoration: none; }
+  .project-meta a:hover { text-decoration: underline; }
+  .bid-form { margin-top: 30px; background-color: #fdf2f5; border-radius: 10px; padding: 20px 30px; border: 1px solid #f4c4d3; }
+  .bid-form h2 { margin-top: 0; color: var(--theme); }
+  .already-bid { margin-top: 30px; background-color: #e8f5e9; border-radius: 10px; padding: 20px 30px; border: 1px solid #4caf50; }
+  .already-bid h2 { margin-top: 0; color: #2e7d32; }
+  .info-box { background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 15px 20px; margin: 15px 0; }
+  .info-box p { margin: 8px 0; color: #856404; }
+  .info-box strong { color: #664d03; }
+  label { display: block; font-weight: bold; margin-bottom: 6px; }
+  input[type="number"], input[type="file"], textarea { width: 100%; max-width: 400px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; outline: none; transition: border-color 0.3s; box-sizing: border-box; }
+  input:focus, textarea:focus { border-color: var(--theme); }
+  button { background-color: var(--theme); color: white; border: none; border-radius: 10px; padding: 12px 18px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.3s; }
+  button:hover { background-color: #ff7b9d; }
+  hr { border: 0; border-top: 1px solid #eee; margin: 25px 0; }
+  .deliverables-list { margin-top: 20px; list-style-type: none; padding-left: 0; }
+  .deliverables-list li { background: #f9f9f9; padding: 10px 15px; border-radius: 5px; margin-bottom: 8px; border: 1px solid #eee; }
+  .deliverables-list small { color: #777; }
+  .deliverables-list p { margin-left: 10px; font-style: italic; color: #555; margin-top: 5px; margin-bottom: 5px; }
+  .warning-text { color: #666; font-size: 14px; margin-top: 10px; padding: 10px; background-color: #fff9e6; border-left: 3px solid #ffc107; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h2>💼 提案平台</h2>
+  <a href="{% if user.user_type.strip() == 'contractor' %}/contractor/dashboard{% else %}/client/dashboard{% endif %}">返回儀表板</a>
+</header>
+
+<main>
+  <h1>{{ project.title }}</h1>
+
+  <div class="project-meta">
+    <p><strong>委託人:</strong> {{ project.client_name.strip() }}</p>
+    <p><strong>預算:</strong> ${{ "%.2f"|format(project.budget) }}</p>
+    <p><strong>狀態:</strong> {{ project.status.strip() }}</p>
+    <p><strong>截止日期:</strong> {{ project.deadline.strftime('%Y-%m-%d') if project.deadline else 'N/A' }}</p>
+  </div>
+  
+  <hr>
+  
+  <h3>📋 專案描述</h3>
+  <p>{{ project.description | safe | replace('\n', '<br>') }}</p>
+  
+  {% if project.attachment_url %}
+  <p>
+    <strong>專案附件:</strong>
+    <a href="{{ project.attachment_url }}" target="_blank">
+      📎 點此下載附件
+    </a>
+  </p>
+  {% endif %}
+  
+  <hr>
+
+  <!-- ========================================
+       投標與交付邏輯 (✅ 加入重複投標檢查)
+       ======================================== -->
+
+  {% if user.user_type.strip() == 'client' and user.uid == project.client_id %}
+    <!-- 1. 委託人看自己的專案 -->
+    <div class="admin-links">
+        <h2>📊 專案管理</h2>
+        <p>這是你的專案,你可以 <a href="/client/project/{{ project.id }}/manage">點此管理投標與驗收</a>。</p>
+    </div>
+  
+  {% elif user.user_type.strip() == 'contractor' and project.status.strip() == 'in_progress' and user.uid == project.accepted_contractor_id %}
+    <!-- 2. 接案人(得標者)交付檔案 -->
+    <div class="bid-form">
+      <h2>🏆 交付你的成果</h2>
+      
+      {% if deliverables %}
+        <p>以下是你「已交付/被退件」的紀錄:</p>
+        <ul class="deliverables-list">
+        {% for d in deliverables %}
+          <li>
+            <a href="{{ d.file_url }}" target="_blank">
+              📎 {{ d.file_url.split('/')[-1] }}
+            </a>
+            <br>
+            <small>狀態: <strong style="color:red">{{ d.status.strip() }}</strong> ({{ d.created_at.strftime('%Y-%m-%d') }})</small>
+            <p>"{{ d.note }}"</p>
+          </li>
+        {% endfor %}
+        </ul>
+        <hr>
+        <p><strong>你的檔案被退件了,請重新上傳:</strong></p>
+      {% else %}
+        <p>恭喜你!你是這個專案的得標者。請在此上傳你的結案檔案。</p>
+      {% endif %}
+
+      <form action="/contractor/project/{{ project.id }}/deliver" method="post" enctype="multipart/form-data">
+        <div>
+          <label for="file">交付檔案:</label>
+          <input type="file" id="file" name="file" required>
+        </div>
+        <div>
+          <label for="note">備註 (選填):</label>
+          <textarea id="note" name="note" rows="4"></textarea>
+        </div>
+        <button type="submit">提交檔案</button>
+      </form>
+    </div>
+  
+  {% elif user.user_type.strip() == 'contractor' and project.status.strip() not in ['open', 'in_progress'] and user.uid == project.accepted_contractor_id %}
+    <!-- 3. 接案人(得標者)查看已結案專案 -->
+    <div class="bid-form">
+      <h2>✅ 你的交付紀錄</h2>
+      <p>你是這個專案的得標者。以下是你的交付紀錄:</p>
+      
+      {% if deliverables %}
+        <ul class="deliverables-list">
+        {% for d in deliverables %}
+          <li>
+            <a href="{{ d.file_url }}" target="_blank">
+              📎 {{ d.file_url.split('/')[-1] }}
+            </a>
+            <br>
+            <small>狀態: <strong style="color:green">{{ d.status.strip() }}</strong> ({{ d.created_at.strftime('%Y-%m-%d') }})</small>
+            <p>"{{ d.note }}"</p>
+          </li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p>你尚未交付任何檔案。</p>
+      {% endif %}
+    </div>
+
+  {% elif user.user_type.strip() == 'contractor' and project.status.strip() == 'open' %}
+    <!-- 4. 接案人投標區域 (✅ 重點修改:檢查 has_bid 或 my_bid) -->
+    
+    {% if has_bid or my_bid %}
+      <!-- ✅ 已經投過標了 -->
+      <div class="already-bid">
+        <h2>✅ 你已投標此專案</h2>
+        <p>你已經對此專案提交過報價,<strong>無法重複投標</strong>。</p>
+        
+        {% if my_bid %}
+        <div class="info-box">
+          <p><strong>你的報價:</strong> ${{ "%.2f"|format(my_bid['price']) }}</p>
+          <p><strong>提案說明:</strong> {{ my_bid['message'] or '(無)' }}</p>
+          <p><strong>投標狀態:</strong> 
+            {% if my_bid['status'] == 'pending' %}
+              <span style="color: #ff9800;">⏳ 等待委託人審核</span>
+            {% elif my_bid['status'] == 'accepted' %}
+              <span style="color: #4caf50;">✅ 已得標</span>
+            {% elif my_bid['status'] == 'rejected' %}
+              <span style="color: #f44336;">❌ 未得標</span>
+            {% else %}
+              {{ my_bid['status'] }}
+            {% endif %}
+          </p>
+        </div>
+        {% endif %}
+        
+        <p style="margin-top: 15px;">
+          <a href="/contractor/my-bids" style="color: #2e7d32; font-weight: bold;">→ 前往「我的專案」查看所有投標</a>
+        </p>
+      </div>
+      
+    {% else %}
+      <!-- ✅ 尚未投標,顯示投標表單 -->
+      <div class="bid-form">
+        <h2>💰 提交我的報價</h2>
+        <form action="/project/{{ project.id }}/bid" method="post">
+          <div>
+            <label for="price">我的報價 ($):</label>
+            <input type="number" id="price" name="price" step="0.01" min="0" placeholder="例如: 3000.00" required>
+          </div>
+          <div style="margin-top: 15px;">
+            <label for="message">提案說明 (選填):</label>
+            <textarea id="message" name="message" rows="5" placeholder="請簡短說明你的服務內容、優勢、預計交付時間等..."></textarea>
+          </div>
+          <button type="submit" style="margin-top: 15px;">提交報價</button>
+        </form>
+        
+        <div class="warning-text">
+          ⚠️ <strong>注意:</strong> 每個專案只能投標一次,送出後無法修改,請謹慎填寫報價與說明。
+        </div>
+      </div>
+    {% endif %}
+  
+  {% elif project.status.strip() != 'open' %}
+    <!-- 5. 專案已關閉 -->
+    <div class="info-box">
+      <p><strong>此專案已結案或正在進行中,無法投標。</strong></p>
+    </div>
+  
+  {% endif %}
+
+  <hr>
+  <div style="text-align:center; margin-top: 20px;">
+    <button onclick="window.history.back()" 
+            style="background-color: var(--theme); color: white; border: none; border-radius: 10px;
+                   padding: 10px 18px; font-size: 16px; font-weight: bold; cursor: pointer;
+                   transition: background 0.3s;">
+      ⬅ 返回上一頁
+    </button>
+  </div>
+
+</main>
+
+</body>
+</html>

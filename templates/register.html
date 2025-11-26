@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>暨柴工作委託平台</title>
+<style>
+  /* 你的 CSS 非常棒，100% 照搬 */
+  :root {
+    --pink: #FFE4E1;
+    --theme: #FF5E7E;
+    --text: #333;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Noto Sans TC", sans-serif;
+    background: var(--pink);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: var(--text);
+  }
+
+  .container {
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    /* [修正點 1]
+      我把背景改回白色，讓你的卡片
+      更像登入頁 的「白底」風格
+    */
+    background-color: #ffffff;
+    padding: 40px 60px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  }
+
+  /* 左邊白色註冊卡 */
+  .register-container {
+    background-color: white;
+    padding: 10px 20px;
+    width: 380px;
+    text-align: center;
+  }
+
+  h1 {
+    color: var(--theme);
+    margin-bottom: 25px;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  label {
+    text-align: left;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  input[type="text"],
+  input[type="password"],
+  select {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.3s;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--theme);
+  }
+
+  button {
+    background-color: var(--theme);
+    border: none;
+    color: white;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background-color: #ff7b9d;
+  }
+
+  .link {
+    margin-top: 10px;
+    font-size: 14px;
+  }
+
+  .link a {
+    color: var(--theme);
+    text-decoration: none;
+  }
+
+  .link a:hover {
+    text-decoration: underline;
+  }
+
+  footer {
+    margin-top: 20px;
+    font-size: 12px;
+    color: #777;
+  }
+
+  /* 右邊角色圖區 */
+  .character {
+    text-align: center;
+  }
+
+  .character img {
+    width: 280px;
+    transition: opacity 0.4s ease;
+  }
+
+  .character p {
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="register-container">
+    <h1>註冊您的帳號</h1>
+    
+    <form action="/register" method="post">
+      <label for="username">帳號：</label>
+      <input type="text" id="username" name="username" placeholder="請輸入帳號" required>
+
+      <label for="password">密碼：</label>
+      <input type="password" id="password" name="password" placeholder="請輸入密碼" required>
+
+      <label for="user_type">我要當：</label>
+      <select id="user_type" name="user_type" required>
+        <option value="contractor">接案人</option>
+        <option value="client">委託人</option>
+      </select>
+
+      <button type="submit">註冊</button>
+    </form>
+
+    <div class="link">
+      已經有帳號？<a href="/loginForm.html">返回登入</a>
+    </div>
+
+    <footer>© 2025 暨大菁英工作第一</footer>
+  </div>
+
+  <div class="character">
+    <img id="roleImage" src="/接案人.png" alt="接案人">
+    <p id="roleText">我想成為接案人</p>
+  </div>
+</div>
+
+<script>
+  const userType = document.getElementById("user_type");
+  const roleImage = document.getElementById("roleImage");
+  const roleText = document.getElementById("roleText");
+
+  // *** [ 修正點 3：修正圖片路徑 ] ***
+  const images = {
+    contractor: "/接案人.png", // 接案人
+    client: "/委託人.png"     // 委託人
+  };
+
+  const texts = {
+    contractor: "我想成為接案人",
+    client: "我想成為委託人"
+  };
+
+  // 切換角色圖片與文字 (你的 JS 邏輯很棒，照搬)
+  userType.addEventListener("change", () => {
+    const value = userType.value;
+    roleImage.style.opacity = 0;
+    setTimeout(() => {
+      roleImage.src = images[value];
+      roleText.textContent = texts[value];
+      roleImage.style.opacity = 1;
+    }, 300);
+  });
+</script>
+
+</body>
+</html>

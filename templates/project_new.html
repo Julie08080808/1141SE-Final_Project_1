@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>暨柴工作委託平台</title>
+<style>
+  :root {
+    --pink-light: #FFE6EB;   /* 背景柔粉 */
+    --pink-nav: #FFC8D0;     /* 頂部區塊粉色 */
+    --theme-red: #FF4B6E;    /* 主題紅粉 */
+    --text: #2a2a2a;
+    --text-light: #555;
+    --white: #FFFFFF;
+    --border-color: #DDD;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  body {
+    font-family: "Noto Sans TC", sans-serif;
+    background-color: var(--pink-light);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+  }
+
+  /* 🌸 Header */
+  header {
+    background-color: var(--pink-nav);
+    color: var(--text);
+    padding: 15px 40px;
+    box-shadow: var(--shadow);
+  }
+
+  header h2 {
+    color: var(--theme-red);
+    font-weight: bold;
+    margin: 0;
+  }
+
+  /* 🌸 Main Card */
+  main {
+    margin: 40px auto;
+    max-width: 850px;
+    background-color: var(--white);
+    border-radius: 15px;
+    padding: 40px 50px;
+    box-shadow: var(--shadow);
+  }
+
+  h1 {
+    color: var(--theme-red);
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
+
+  p {
+    color: var(--text-light);
+    font-size: 15px;
+    margin-bottom: 30px;
+  }
+
+  form div {
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+    color: var(--text);
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  input[type="file"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    box-sizing: border-box;
+    font-size: 15px;
+    transition: all 0.3s;
+  }
+
+  input:focus,
+  textarea:focus {
+    border-color: var(--theme-red);
+    box-shadow: 0 0 5px rgba(255, 75, 110, 0.3);
+    outline: none;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  button {
+    background-color: var(--theme-red);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 25px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+  }
+
+  button:hover {
+    background-color: #e04063;
+  }
+
+  a.cancel {
+    margin-left: 20px;
+    text-decoration: none;
+    color: var(--theme-red);
+    font-weight: bold;
+    font-size: 15px;
+    transition: color 0.3s, background-color 0.3s;
+    padding: 10px 18px;
+    border-radius: 8px;
+  }
+
+  a.cancel:hover {
+    background-color: var(--pink-nav);
+  }
+
+  footer {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-light);
+    margin: 40px 0 20px;
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <h2>🌻 建立新專案</h2>
+</header>
+
+<main>
+  <h1>建立一個新專案</h1>
+  <p>請填寫以下表單以發布你的專案需求。</p>
+
+  <form action="/client/project/new" method="post" enctype="multipart/form-data">
+    <div>
+      <label for="title">專案標題：</label>
+      <input type="text" id="title" name="title" required>
+    </div>
+
+    <div>
+      <label for="description">專案描述：</label>
+      <textarea id="description" name="description" rows="5" placeholder="請簡要說明你的專案需求..."></textarea>
+    </div>
+
+    <div>
+      <label for="budget">預算 ($)：</label>
+      <input type="number" id="budget" name="budget" step="0.01" placeholder="例如：500.00">
+    </div>
+
+    <div>
+      <label for="deadline">截止日期：</label>
+      <input type="date" id="deadline" name="deadline" required>
+    </div>
+
+    <div>
+      <label for="attachment">專案附件（選填）：</label>
+      <input type="file" id="attachment" name="attachment">
+    </div>
+
+    <div style="margin-top: 30px;">
+      <button type="submit">📤 發布專案</button>
+      <a href="/client/dashboard" class="cancel">取消</a>
+    </div>
+  </form>
+</main>
+
+<footer>
+  © 2025 提案平台 — 專案協作新體驗
+</footer>
+
+</body>
+</html>

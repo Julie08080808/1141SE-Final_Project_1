@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>暨柴工作委託平台</title>
+<style>
+  :root {
+    --pink-bg: #FFE4E1;
+    --theme: #FF5E7E;
+    --text: #333;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Noto Sans TC", sans-serif;
+    background-color: var(--pink-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+
+  .container {
+    display: flex;
+    align-items: center;
+    background-color: var(--pink-bg);
+    padding: 40px 60px;
+    border-radius: 20px;
+    gap: 100px;
+  }
+
+  /* 左半邊 - Logo與平台名稱 */
+  .left-section {
+    text-align: center;
+    margin-right: 60px;
+  }
+
+  .left-section img {
+    width: 220px;
+    height: auto;
+  }
+
+  .left-section h1 {
+    margin-top: 20px;
+    font-size: 24px;
+    color: #000;
+  }
+
+  .left-section p {
+    margin-top: 5px;
+    font-size: 14px;
+    color: #555;
+  }
+
+  /* 右半邊 - 登入表單 */
+  .login-card {
+    background-color: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 40px 50px;
+    width: 330px;
+  }
+
+  .login-card h2 {
+    text-align: center;
+    color: var(--theme);
+    margin-bottom: 30px;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  label {
+    text-align: left;
+    font-weight: bold;
+    margin-bottom: 3px;
+  }
+
+  input[type="text"],
+  input[type="password"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+
+  input:focus {
+    border-color: var(--theme);
+  }
+
+  button {
+    background-color: var(--theme);
+    border: none;
+    color: white;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background-color: #ff7b9d;
+  }
+
+  .link {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .link a {
+    color: var(--theme);
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  .link a:hover {
+    text-decoration: underline;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 12px;
+    color: #888;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 左半邊區塊 -->
+  <div class="left-section">
+    <img src="/工作平台.png" alt="Logo">
+    <h1>暨柴工作委託平台</h1>
+    <p>work.ncnu</p>
+  </div>
+
+  <!-- 右半邊登入表單 -->
+  <div class="login-card">
+    <h2>歡迎來到暨柴工作委託平台</h2>
+    <form action="/login" method="post">
+      <label for="username">帳號：</label>
+      <input type="text" id="username" name="username" required>
+
+      <label for="password">密碼：</label>
+      <input type="password" id="password" name="password" required>
+
+      <button type="submit">登入</button>
+    </form>
+
+    <div class="link">
+      還沒有帳號？ <a href="/register.html">立即註冊</a>
+    </div>
+
+    <footer>© 2025 暨大菁英工作第一</footer>
+  </div>
+</div>
+
+</body>
+</html>

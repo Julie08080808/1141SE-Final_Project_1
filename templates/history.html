@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>暨柴工作委託平台</title>
+<style>
+    :root {
+        --pink-light: #FFF8F9;
+        --pink-nav: #FEDFE5;
+        --pink-active-tab: #FDBDCB;
+        --theme-red: #FF5E7E;
+        --text: #333;
+        --text-light: #555;
+        --border-color: #EEE;
+        --white: #FFFFFF;
+        --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+    body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: var(--pink-light);
+        color: var(--text);
+        margin: 0;
+    }
+
+/* 🌸 頂部導覽列（統一 client_browse_projects 樣式） */
+.top-header {
+  background-color: var(--pink-nav);
+  padding: 10px 30px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 80px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-area img {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  transition: transform 0.3s;
+}
+
+.logo-area img:hover {
+  transform: scale(1.05);
+}
+
+.logo-text {
+  font-weight: bold;
+  color: var(--text);
+  font-size: 18px;
+}
+
+.top-nav a {
+  margin: 0 15px;
+  padding: 8px 18px;
+  text-decoration: none;
+  color: var(--text-light);
+  font-weight: 500;
+  border-radius: 10px;
+  transition: 0.3s;
+}
+
+.top-nav a.active,
+.top-nav a:hover {
+  background-color: var(--white);
+  color: var(--theme-red);
+}
+
+.user-info {
+  margin-left: auto;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.user-info a {
+  color: var(--text-light);
+  text-decoration: none;
+  margin-left: 15px;
+}
+
+.user-info a:hover {
+  color: var(--theme-red);
+}
+
+    /* --- 主內容 --- */
+    .dashboard-wrapper {
+        max-width: 1400px;
+        margin: 30px auto;
+        padding: 0 20px;
+    }
+
+    .main-content { flex: 1; }
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .table-container {
+        background: var(--white);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+        overflow-x: auto;
+    }
+    
+    table { 
+        border-collapse: collapse; 
+        width: 100%; 
+        margin-top: 10px;
+        font-size: 14px;
+    }
+    
+    th, td {
+        border-bottom: 1px solid var(--border-color);
+        padding: 12px 10px;
+        text-align: left;
+        white-space: nowrap;
+    }
+    
+    th { 
+        background-color: #fcfcfc; 
+        font-size: 13px; 
+        color: var(--text-light);
+        font-weight: 600;
+    }
+    
+    td { font-size: 14px; }
+    tr:hover { background-color: var(--pink-light); }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    /* 委託人狀態 */
+    .status-open { 
+        color: #2e7d32;
+    }
+    .status-progress { 
+        color: #f57c00;
+    }
+    .status-submitted { 
+        color: #f57c00;
+    }
+    .status-review { 
+        color: #f57c00;
+    }
+    .status-completed { 
+        color: #2e7d32;
+    }
+
+    /* 接案人狀態 */
+    .status-pending { 
+        color: #2e7d32;
+    }
+    .status-accepted { 
+        color: #f57c00;
+    }
+    .status-rejected { 
+        color: #c62828;
+    }
+
+    /* 圖示 */
+    .status-icon {
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .project-title-link {
+        color: var(--theme-red);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .project-title-link:hover {
+        text-decoration: underline;
+    }
+
+    .btn-manage {
+        background-color: var(--theme-red);
+        border: none;
+        color: white !important;
+        padding: 6px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 13px;
+        transition: background-color 0.3s;
+    }
+
+    .btn-manage:hover {
+        background-color: #ff7b9d;
+    }
+
+    .empty-message {
+        text-align: center; 
+        padding: 40px; 
+        color: #999;
+        font-size: 15px;
+    }
+</style>
+</head>
+<body>
+
+
+<header class="top-header">
+  <div class="logo-area">
+    <img src="/工作平台.png" alt="平台Logo">
+    <div class="logo-text">work.ncnu</div>
+  </div>
+
+  <nav class="top-nav">
+    {% if user_type == 'client' %}
+      <a href="/client/dashboard">我的專案</a>
+    {% else %}
+      <a href="/contractor/my-bids">我的專案</a>
+    {% endif %}
+    <a href="/history" class="active">歷史專案</a>
+    {% if user_type == 'client' %}
+      <a href="/client/browse">公開招標專案</a>
+    {% else %}
+      <a href="/contractor/dashboard">公開招標專案</a>
+    {% endif %}
+  </nav>
+
+  <div class="user-info">
+    你好～委託人 {{ user_name }} 🪸
+    <a href="/logout">登出</a>
+  </div>
+</header>
+
+
+<div class="dashboard-wrapper">
+    <main class="main-content">
+        <div class="content-header">
+            <h2>🕓 歷史紀錄 
+                {% if user_type == 'client' %}
+                    (委託人)
+                {% else %}
+                    (接案人)
+                {% endif %}
+            </h2>
+        </div>
+
+        <div class="table-container">
+            {% if projects %}
+            
+            <!-- ========== 委託人視圖 ========== -->
+            {% if user_type == 'client' %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>創立時間</th>
+                        <th>專案標題</th>
+                        <th>接案人</th>
+                        <th>專案狀態</th>
+                        <th>截止日期</th>
+                        <th>實際完成日期</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for proj in projects %}
+                    <tr>
+                        <td>{{ proj.created_at.strftime('%Y-%m-%d') if proj.created_at else 'N/A' }}</td>
+                        <td>
+                            <a href="/client/project/{{ proj.id }}/manage" class="project-title-link">
+                                {{ proj.title }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if proj.status.strip() == 'open' %}
+                                {% if proj.bid_count and proj.bid_count > 0 %}
+                                    <span style="color: #f57c00; font-weight: 500;">
+                                        {{ proj.bid_count }} 人投標
+                                    </span>
+                                {% else %}
+                                    <em style="color:#999;">尚無投標</em>
+                                {% endif %}
+                            {% elif proj.contractor_name %}
+                                {{ proj.contractor_name.strip() }}
+                            {% else %}
+                                <em style="color:#999;">(未選標)</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set status = proj.status.strip() %}
+                            {% if status == 'open' %}
+                                <span class="status-badge status-open">
+                                    <span class="status-icon">📢</span>
+                                    公開招標中
+                                </span>
+                            {% elif status == 'in_progress' %}
+                                <span class="status-badge status-progress">
+                                    <span class="status-icon">⏳</span>
+                                    進行中
+                                </span>
+                            {% elif status == 'submitted' %}
+                                <span class="status-badge status-progress">
+                                    <span class="status-icon">⏳</span>
+                                    進行中
+                                </span>
+                            {% elif status == 'review' %}
+                                <span class="status-badge status-progress">
+                                    <span class="status-icon">⏳</span>
+                                    進行中
+                                </span>
+                            {% elif status == 'completed' %}
+                                <span class="status-badge status-completed">
+                                    <span class="status-icon">✅</span>
+                                    已結案
+                                </span>
+                            {% else %}
+                                <span class="status-badge">{{ status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ proj.deadline.strftime('%Y-%m-%d') if proj.deadline else 'N/A' }}</td>
+                        <td>
+                            {% if proj.completed_at %}
+                                {{ proj.completed_at.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                <em style="color:#999;">-</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/client/project/{{ proj.id }}/manage" class="btn-manage">查看詳情</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- ========== 接案人視圖 ========== -->
+            {% else %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>接案時間</th>
+                        <th>專案標題</th>
+                        <th>委託人</th>
+                        <th>我的狀態</th>
+                        <th>委託人預算</th>
+                        <th>我的報價</th>
+                        <th>截止日期</th>
+                        <th>實際完成日期</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for proj in projects %}
+                    <tr>
+                        <td>{{ proj.bid_created_at.strftime('%Y-%m-%d') if proj.bid_created_at else 'N/A' }}</td>
+                        <td>
+                            <a href="/project/{{ proj.id }}" class="project-title-link">
+                                {{ proj.title }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if proj.client_name %}
+                                {{ proj.client_name.strip() }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set my_status = proj.my_bid_status.strip() %}
+                            {% set proj_status = proj.project_status.strip() if proj.project_status else proj.status.strip() %}
+                            
+                            {% if my_status == 'pending' %}
+                                <span class="status-badge status-open">
+                                    <span class="status-icon">📢</span>
+                                    公開招標中
+                                </span>
+                            {% elif my_status == 'accepted' and proj_status == 'in_progress' %}
+                                <span class="status-badge status-progress">
+                                    <span class="status-icon">⏳</span>
+                                    進行中
+                                </span>
+                            {% elif my_status == 'accepted' and proj_status == 'submitted' %}
+                                <span class="status-badge status-progress">
+                                    <span class="status-icon">⏳</span>
+                                    進行中
+                                </span>
+                            {% elif my_status == 'accepted' and proj_status == 'review' %}
+                                <span class="status-badge status-progress">
+                                    <span class="status-icon">⏳</span>
+                                    進行中
+                                </span>
+                            {% elif proj_status == 'completed' %}
+                                <span class="status-badge status-completed">
+                                    <span class="status-icon">✅</span>
+                                    已結案
+                                </span>
+                            {% elif my_status == 'rejected' %}
+                                <span class="status-badge status-rejected">
+                                    <span class="status-icon">❌</span>
+                                    未得標
+                                </span>
+                            {% else %}
+                                <span class="status-badge">{{ my_status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ "%.2f"|format(proj.budget) if proj.budget else '0.00' }}</td>
+                        <td>${{ "%.2f"|format(proj.price) if proj.price else '0.00' }}</td>
+                        <td>{{ proj.deadline.strftime('%Y-%m-%d') if proj.deadline else 'N/A' }}</td>
+                        <td>
+                            {% if proj.completed_at %}
+                                {{ proj.completed_at.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                <em style="color:#999;">-</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/project/{{ proj.id }}" class="btn-manage">查看詳情</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            {% else %}
+                <p class="empty-message">目前沒有歷史紀錄。</p>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+</body>
+</html>
