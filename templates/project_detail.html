@@ -75,19 +75,13 @@
   
   <hr>
 
-  <!-- ========================================
-       投標與交付邏輯 (✅ 加入重複投標檢查)
-       ======================================== -->
-
   {% if user.user_type.strip() == 'client' and user.uid == project.client_id %}
-    <!-- 1. 委託人看自己的專案 -->
     <div class="admin-links">
         <h2>📊 專案管理</h2>
         <p>這是你的專案,你可以 <a href="/client/project/{{ project.id }}/manage">點此管理投標與驗收</a>。</p>
     </div>
   
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() == 'in_progress' and user.uid == project.accepted_contractor_id %}
-    <!-- 2. 接案人(得標者)交付檔案 -->
     <div class="bid-form">
       <h2>🏆 交付你的成果</h2>
       
@@ -125,7 +119,6 @@
     </div>
   
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() not in ['open', 'in_progress'] and user.uid == project.accepted_contractor_id %}
-    <!-- 3. 接案人(得標者)查看已結案專案 -->
     <div class="bid-form">
       <h2>✅ 你的交付紀錄</h2>
       <p>你是這個專案的得標者。以下是你的交付紀錄:</p>
@@ -149,10 +142,7 @@
     </div>
 
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() == 'open' %}
-    <!-- 4. 接案人投標區域 (✅ 重點修改:檢查 has_bid 或 my_bid) -->
-    
     {% if has_bid or my_bid %}
-      <!-- ✅ 已經投過標了 -->
       <div class="already-bid">
         <h2>✅ 你已投標此專案</h2>
         <p>你已經對此專案提交過報價,<strong>無法重複投標</strong>。</p>
@@ -161,6 +151,16 @@
         <div class="info-box">
           <p><strong>你的報價:</strong> ${{ "%.2f"|format(my_bid['price']) }}</p>
           <p><strong>提案說明:</strong> {{ my_bid['message'] or '(無)' }}</p>
+          
+          {% if my_bid.proposal_url %}
+          <p>
+            <strong>計畫書:</strong> 
+            <a href="{{ my_bid.proposal_url }}" target="_blank">
+              📄 點此檢視已上傳的計劃書 (PDF)
+            </a>
+          </p>
+          {% endif %}
+
           <p><strong>投標狀態:</strong> 
             {% if my_bid['status'] == 'pending' %}
               <span style="color: #ff9800;">⏳ 等待委託人審核</span>
@@ -181,18 +181,27 @@
       </div>
       
     {% else %}
-      <!-- ✅ 尚未投標,顯示投標表單 -->
       <div class="bid-form">
         <h2>💰 提交我的報價</h2>
-        <form action="/project/{{ project.id }}/bid" method="post">
+        <form action="/project/{{ project.id }}/bid" method="post" enctype="multipart/form-data"> 
           <div>
             <label for="price">我的報價 ($):</label>
             <input type="number" id="price" name="price" step="0.01" min="0" placeholder="例如: 3000.00" required>
           </div>
+
+          <div style="margin-top: 15px;">
+            <label for="proposal_file">上傳計畫書 (限 PDF):</label>
+            <input type="file" id="proposal_file" name="proposal_file" accept=".pdf">
+            <div class="warning-text">
+              ⚠️ **重要：** 建議上傳您的詳細計劃書 (.pdf) 以增加提案成功率。
+            </div>
+          </div>
+          
           <div style="margin-top: 15px;">
             <label for="message">提案說明 (選填):</label>
             <textarea id="message" name="message" rows="5" placeholder="請簡短說明你的服務內容、優勢、預計交付時間等..."></textarea>
           </div>
+          
           <button type="submit" style="margin-top: 15px;">提交報價</button>
         </form>
         
@@ -203,7 +212,6 @@
     {% endif %}
   
   {% elif project.status.strip() != 'open' %}
-    <!-- 5. 專案已關閉 -->
     <div class="info-box">
       <p><strong>此專案已結案或正在進行中,無法投標。</strong></p>
     </div>
@@ -221,6 +229,19 @@
   </div>
 
 </main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 檢查是否有錯誤訊息
+        const errorDetail = '{{ request.query_params.get("error_detail", "") }}';
+        
+        if (errorDetail) {
+             // 處理錯誤：只顯示彈窗
+             const decodedError = decodeURIComponent(errorDetail.replace(/\+/g, ' '));
+             alert(`操作失敗：${decodedError}`);
+        }
+    });
+</script>
 
 </body>
 </html>

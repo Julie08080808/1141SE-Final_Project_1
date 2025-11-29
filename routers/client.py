@@ -1,4 +1,4 @@
-# --- [ routers/client.py (v3.1 含投標數統計版) ] ---
+# --- [ routers/client.py (v3.2 UX優化版：錯誤回填表單) ] ---
 # 📘 功能說明：
 # 委託人（Client）專屬路由，負責：
 # - 儀表板顯示（含專案統計）
@@ -46,7 +46,7 @@ async def get_client_dashboard(
         return RedirectResponse(url="/contractor/dashboard") 
 
     # 使用新的 CRUD 函數，它會自動取得委託人所有專案 + 投標數統計
-    all_projects = await crud.get_projects_by_client_id_with_bid_count(conn, user["uid"]) # 取得委託人的專案，同時統計投標數
+    all_projects = await crud.get_projects_by_client_id_with_bid_count(conn, user["uid"]) 
     
     # 分類專案
     bidding_projects = []
@@ -90,8 +90,8 @@ async def new_project_form(
 # --------------------------------------------------------
 # 📤 路由 3: 處理建立專案的表單資料 (含附件)
 # --------------------------------------------------------
-# 路由 3: 處理建立專案 POST /client/project/new (v3.0)
-@router.post("/project/new", response_class=RedirectResponse)
+# 路由 3: 處理建立專案 POST /client/project/new (v3.2 UX優化)
+@router.post("/project/new", response_class=HTMLResponse) # 注意：這裡回傳型態改為 HTMLResponse 以便渲染錯誤頁面
 async def create_new_project(
     request: Request,
     title: str = Form(...),
@@ -105,6 +105,18 @@ async def create_new_project(
     # 只允許委託人建立專案
     if user["user_type"].strip() != 'client':
         raise HTTPException(status_code=403, detail="Only clients can create projects")
+
+    # 🔥 [UX優化] 截止日期檢查：若日期錯誤，不跳轉，直接回傳原頁面 + 錯誤訊息 + 保留填寫資料
+    if deadline < date.today():
+        return templates.TemplateResponse("project_new.html", {
+            "request": request,
+            "error_message": "截止日期無效：不能選擇過去的日期！",  # 👈 傳給前端顯示
+            # 👇 把使用者剛填的資料傳回去，前端可以用 value="{{ title }}" 接住
+            "title": title,
+            "description": description,
+            "budget": budget,
+            "deadline": deadline 
+        }, status_code=400)
 
     # 先建立專案，取得 project_id
     new_project = await crud.create_project(
@@ -121,10 +133,9 @@ async def create_new_project(
 
     new_project_id = new_project["id"]
 
-    # 處理檔案上傳 ， 若有上傳附件 → 儲存檔案並更新資料庫
+    # 處理檔案上傳
     attachment_url = None
     if attachment and attachment.filename:
-        # 建立專屬子資料夾
         project_folder = os.path.join(UPLOAD_DIR, f"project_{new_project_id}", "attachment")
         os.makedirs(project_folder, exist_ok=True) 
 
@@ -138,7 +149,6 @@ async def create_new_project(
         
         attachment_url = f"/uploads/project_{new_project_id}/attachment/{attachment.filename}"
 
-        # 回頭更新 project，把 URL 補上
         await crud.update_project(
             conn=conn, project_id=new_project_id, client_id=user["uid"],
             title=title, description=description, budget=budget, deadline=deadline,
@@ -152,8 +162,6 @@ async def create_new_project(
 # ------------------------------------------------------------
 # 📦 路由 4: 專案管理頁面 (查看報價、選擇接案人、核准交付、退件)
 # ------------------------------------------------------------
-# --- [ 報價 / 結案 / 編輯 管理區 ] ---
-
 # 路由 4: "專案管理總頁" GET /client/project/{project_id}/manage
 @router.get("/project/{project_id}/manage", response_class=HTMLResponse)
 async def get_project_management_page(
@@ -166,11 +174,10 @@ async def get_project_management_page(
     if not project or project["client_id"] != user["uid"]:
         return HTMLResponse("專案不存在或您沒有權限。", status_code=403)
     
-    bids = await crud.get_bids_for_project(conn, project_id)     # 取得專案所有投標紀錄（含接案人名稱）
+    bids = await crud.get_bids_for_project(conn, project_id)
     deliverables = await crud.get_deliverables_for_project(conn, project_id)
 
     return templates.TemplateResponse("bid_list.html", {  
-        #它的作用是：將資料傳入 bid_list.html 模板，然後產生一個完整的 HTML 回應給使用者
         "request": request,
         "project": project,
         "bids": bids,
@@ -182,7 +189,6 @@ async def get_project_management_page(
 # --------------------------------------------------------
 # ✅ 路由 5: 委託人選擇得標者
 # --------------------------------------------------------
-# 路由 5: "選擇接案人" POST /client/project/{project_id}/select/{bid_id}
 @router.post("/project/{project_id}/select/{bid_id}", response_class=RedirectResponse)
 async def select_bid(
     project_id: int,
@@ -207,7 +213,6 @@ async def select_bid(
 # --------------------------------------------------------
 # ✅ 路由 6: 結案 (通過交付)
 # --------------------------------------------------------
-# 路由 6: "結案 (通過)" POST /client/.../approve
 @router.post("/project/{project_id}/deliverable/{deliverable_id}/approve", response_class=RedirectResponse)
 async def approve_deliverable(
     project_id: int,
@@ -267,7 +272,7 @@ async def edit_project_form(
 # --------------------------------------------------------
 # 🧩 路由 9: 處理編輯專案表單 (含附件更新)
 # --------------------------------------------------------
-@router.post("/project/{project_id}/edit", response_class=RedirectResponse)
+@router.post("/project/{project_id}/edit", response_class=HTMLResponse) # 注意：這裡也改為 HTMLResponse
 async def process_edit_project(
     project_id: int,
     request: Request,
@@ -279,10 +284,26 @@ async def process_edit_project(
     conn: Connection = Depends(getDB),
     user: dict = Depends(get_current_user)
 ):
+    # 🔥 [UX優化] 編輯時的日期檢查
+    if deadline < date.today():
+        # 為了讓前端能正常顯示，我們需要模擬一個 project 物件傳回去
+        # 這樣 HTML 中的 {{ project.title }} 才能讀到資料
+        mock_project = {
+            "id": project_id,
+            "title": title,
+            "description": description,
+            "budget": budget,
+            "deadline": deadline,
+            "attachment_url": None # 暫時不回填檔案路徑，太複雜
+        }
+        return templates.TemplateResponse("project_edit.html", {
+            "request": request,
+            "error_message": "截止日期無效：不能修改為過去的日期！",
+            "project": mock_project # 👈 這裡用 mock_project 騙過前端模板
+        }, status_code=400)
+
     attachment_url = None
-    # ✅ 若有上傳新附件 → 取代舊檔案
     if attachment and attachment.filename:
-        # 儲存到專屬子資料夾
         project_folder = os.path.join(UPLOAD_DIR, f"project_{project_id}", "attachment")
         os.makedirs(project_folder, exist_ok=True) 
 
@@ -296,7 +317,7 @@ async def process_edit_project(
         
         attachment_url = f"/uploads/project_{project_id}/attachment/{attachment.filename}"
     else:
-        # 如果沒有上傳新檔案，就保留舊的
+        # 如果沒有上傳新檔案，嘗試去 DB 撈舊的路徑保留
         project = await crud.get_project_by_id(conn, project_id)
         if project:
             attachment_url = project.get("attachment_url")
@@ -326,7 +347,6 @@ async def browse_open_projects(
     if user["user_type"].strip() != 'client':
         return RedirectResponse(url="/contractor/dashboard")
     
-    # 取得所有公開招標的專案（包含投標數） # 從 crud 取得所有 open 專案（含投標數）
     open_projects = await crud.get_all_open_projects_with_bid_count(conn)
     
     return templates.TemplateResponse("client_browse_projects.html", {

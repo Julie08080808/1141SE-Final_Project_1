@@ -132,6 +132,13 @@
     <p class="desc">修改你的專案內容（注意：專案選標後將無法修改）</p>
 
     <form action="/client/project/{{ project.id }}/edit" method="post" enctype="multipart/form-data">
+      
+      {% if error_message %}
+      <div style="color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+          ⚠️ {{ error_message }}
+      </div>
+      {% endif %}
+
       <div>
         <label for="title">專案標題：</label>
         <input type="text" id="title" name="title" value="{{ project.title }}" required>
