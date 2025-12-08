@@ -18,6 +18,7 @@ from typing import Optional
 import crud
 import os
 import shutil
+from datetime import datetime, timedelta
 
 # 統一定義上傳資料夾
 UPLOAD_DIR = "uploads" 
@@ -48,6 +49,8 @@ async def get_client_dashboard(
     # 使用新的 CRUD 函數，它會自動取得委託人所有專案 + 投標數統計
     all_projects = await crud.get_projects_by_client_id_with_bid_count(conn, user["uid"]) # 取得委託人的專案，同時統計投標數
     
+    given_reviews = await crud.get_my_given_reviews(conn, user["uid"])
+
     # 分類專案
     bidding_projects = []
     pending_projects = []
@@ -71,7 +74,10 @@ async def get_client_dashboard(
         "user_name": user["name"].strip(),
         "bidding_projects": bidding_projects, 
         "pending_projects": pending_projects,
-        "completed_projects": completed_projects
+        "completed_projects": completed_projects,
+        "given_reviews": given_reviews,
+        # 輔助變數 (讓前端知道現在在哪一頁，選填)
+        "active_tab": "projects"
     })
 
 # --------------------------------------------------------
@@ -334,3 +340,61 @@ async def browse_open_projects(
         "user_name": user["name"].strip(),
         "projects": open_projects
     })
+
+
+
+# ⭐ 處理委託人送出的評價 (POST)
+@router.post("/project/{project_id}/review")
+async def submit_client_review(
+    project_id: int,
+    score_1: int = Form(...), 
+    score_2: int = Form(...), 
+    score_3: int = Form(...), 
+    comment: str = Form(""),
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 1. 抓取專案資料
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="專案不存在")
+
+    # 安全檢查：確認權限
+    if project['client_id'] != user['uid']:
+         raise HTTPException(status_code=403, detail="您沒有權限評價此專案")
+
+    # 檢查專案是否已結案
+    if project['status'] != 'completed':
+        raise HTTPException(status_code=400, detail="專案尚未結案，無法評價")
+
+    # 找出接案人 ID 
+    contractor_id = project.get('accepted_contractor_id')
+    
+    if not contractor_id:
+        raise HTTPException(status_code=400, detail="此專案沒有得標者，無法進行評價")
+    
+    # 期限檢查 (7天)
+    if project['completed_at']:
+        deadline = project['completed_at'] + timedelta(days=7)
+        if datetime.now() > deadline:
+            raise HTTPException(status_code=400, detail="已超過評價期限 (7天)，無法進行評價。")
+    else:
+        # 如果狀態是 completed 但沒有時間，代表資料庫資料有異常
+        raise HTTPException(status_code=400, detail="專案結案時間資料異常")
+
+    # 檢查是否重複評價
+    if await crud.check_if_reviewed(conn, project_id, user['uid']):
+        return RedirectResponse(url="/client/dashboard", status_code=303)
+
+    # 4. 寫入評價
+    await crud.create_review(
+        conn=conn,
+        project_id=project_id,
+        reviewer_id=user['uid'],
+        reviewee_id=contractor_id,
+        role_type='client_to_contractor',
+        s1=score_1, s2=score_2, s3=score_3,
+        comment=comment
+    )
+
+    return RedirectResponse(url="/client/dashboard", status_code=303)

@@ -341,6 +341,28 @@
         padding: 40px;
         font-style: italic;
     }
+
+/* --- [ 新增：彈窗樣式 ] --- */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); z-index: 9999;
+    display: flex; justify-content: center; align-items: center;
+    opacity: 0; visibility: hidden; transition: opacity 0.3s;
+}
+.modal-overlay.show { opacity: 1; visibility: visible; }
+
+.modal-card {
+    background: white; width: 90%; max-width: 500px;
+    border-radius: 15px; padding: 30px; position: relative;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    transform: translateY(-20px); transition: transform 0.3s;
+}
+.modal-overlay.show .modal-card { transform: translateY(0); }
+
+.close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #aaa; }
+.form-row { margin-bottom: 15px; }
+.form-row label { display: block; font-weight: bold; margin-bottom: 5px; color: #444; }
+.form-row select, .form-row textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
 </style>
 </head>
 <body>
@@ -370,6 +392,7 @@
             <button class="tab-button active" onclick="switchTab(event, 'bidding-content')">招標中專案</button>
             <button class="tab-button" onclick="switchTab(event, 'pending-content')">待結案</button>
             <button class="tab-button" onclick="switchTab(event, 'completed-content')">已結案</button>
+            <button class="tab-button" onclick="switchTab(event, 'reviews-content')">已評價</button>
         </div>
     </nav>
 
@@ -535,6 +558,27 @@
                   <td>{% if p.final_price %}<b>${{ "%.2f"|format(p.final_price) }}</b>{% else %}<em>(N/A)</em>{% endif %}</td>
                   <td>{{ p.deadline.strftime('%Y-%m-%d') if p.deadline else 'N/A' }}</td>
                   <td><a href="/client/project/{{ p.id }}/manage" class="btn-manage">查看</a></td>
+                  <td>
+                    <div style="display: flex; gap: 5px;">                
+                        {% if p.has_reviewed %}
+                        <span style="color: #888; background: #eee; padding: 5px 10px; border-radius: 4px; font-size: 0.9em; display:flex; align-items:center;">
+                            📝 已評價
+                        </span>
+                        {% elif p.is_review_expired %}
+                        <span style="color: #999; font-size: 0.9em; font-style: italic; display:flex; align-items:center;">
+                            ⏳ 已過評價期限
+                        </span>
+                        {% else %}
+                        <button 
+                         type="button"
+                            onclick="openReviewModal('{{ p.id }}', '{{ p.title }}', '{{ p.final_price }}')"
+                            class="btn-manage"
+                            style="background-color: #FF5E7E; border: none; cursor: pointer;">
+                            ⭐ 評價
+                        </button>
+                        {% endif %}
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
                 {% if not completed_projects %}
@@ -543,6 +587,111 @@
               </tbody>
             </table>
           </div>
+        </div>
+        <!-- 已評價專案 -->
+        <div id="reviews-content" class="content-tab">
+            <div class="table-container">
+                {% if given_reviews %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>專案標題</th>
+                            <th>評價對象</th>
+                            <th>整體評分</th>
+                            <th>評價內容</th>
+                            <th>日期</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for review in given_reviews %}
+                        <tr>
+                            <td>
+                                <a href="/project/{{ review.project_id }}" style="color: var(--theme-red); text-decoration: none;">
+                                    {{ review.project_title }}
+                                </a>
+                            </td>
+                            <td>
+                                {{ review.reviewee_name }} <span style="font-size:0.8em; color:#888;">接案人</span>
+                            </td>
+                            <td>
+                                {% set avg = ((review.score_1 + review.score_2 + review.score_3) / 3) | round(1) %}
+                            <span style="color: #f1c40f;">★ {{ avg }}</span>
+                            </td>
+                            <td>
+                                <div style="font-style: italic; color: #444;">
+                                    {{ review.comment if review.comment else '(無文字評論)' }}
+                                </div>
+                            </td>
+                            <td style="color: #888; font-size: 0.9em;">
+                                {{ review.created_at.strftime('%Y-%m-%d') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div style="text-align: center; padding: 40px; color: #888;">
+                    <p>你尚未評價任何接案人。</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="reviewModal" class="modal-overlay">
+            <div class="modal-card">
+                <span class="close-modal" onclick="closeReviewModal()">&times;</span>
+                <h3 style="text-align: center; color: #333; margin-top: 0;">評價接案人</h3>
+    
+                <div style="background: #FFF8F9; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #555; font-size: 0.9em;">
+                <div><strong>專案：</strong> <span id="modal-title"></span></div>
+                <div><strong>成交金額：</strong> NT$ <span id="modal-price"></span></div>
+            </div>
+
+            <form id="reviewForm" method="POST">
+                <div class="form-row">
+                <label>1. 產出品質 (Quality)</label>
+                <select name="score_1" required>
+                    <option value="" disabled selected>請給分...</option>
+                    <option value="5">5分 - 品質優異</option>
+                    <option value="4">4分 - 很好</option>
+                    <option value="3">3分 - 普通</option>
+                    <option value="2">2分 - 需改進</option>
+                    <option value="1">1分 - 極差</option>
+                </select>
+                </div>
+
+                <div class="form-row">
+                <label>2. 執行效率 (Efficiency)</label>
+                <select name="score_2" required>
+                    <option value="" disabled selected>請給分...</option>
+                    <option value="5">5分 - 提早/準時</option>
+                    <option value="4">4分 - 稍微延遲</option>
+                    <option value="3">3分 - 普通</option>
+                    <option value="2">2分 - 經常拖延</option>
+                    <option value="1">1分 - 嚴重遲交</option>
+                </select>
+                </div>
+
+                <div class="form-row">
+                <label>3. 合作態度 (Attitude)</label>
+                <select name="score_3" required>
+                    <option value="" disabled selected>請給分...</option>
+                    <option value="5">5分 - 溝通愉快</option>
+                    <option value="4">4分 - 配合度高</option>
+                    <option value="3">3分 - 普通</option>
+                    <option value="2">2分 - 被動</option>
+                    <option value="1">1分 - 態度惡劣</option>
+                </select>
+                </div>
+
+                <div class="form-row">
+                    <label>其他評語 (選填)</label>
+                    <textarea name="comment" rows="3" placeholder="給接案人的建議或鼓勵..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-create" style="width: 100%; border: none;">送出評價</button>
+            </form>
+            </div>
         </div>
     </main>
 </div>
@@ -719,6 +868,31 @@ function removeFilter(type) {
 document.addEventListener("DOMContentLoaded", function() {
     document.getElementsByClassName("tab-button")[0].click();
 });
+
+function openReviewModal(projectId, title, price) {
+  // 1. 填入資訊
+  document.getElementById('modal-title').innerText = title;
+  document.getElementById('modal-price').innerText = price;
+
+  // 2. 設定表單 Action (送往 client 路由)
+  const form = document.getElementById('reviewForm');
+  form.action = "/client/project/" + projectId + "/review";
+
+  // 3. 顯示
+  document.getElementById('reviewModal').classList.add('show');
+}
+
+function closeReviewModal() {
+  document.getElementById('reviewModal').classList.remove('show');
+}
+
+// 點擊背景關閉
+window.onclick = function(event) {
+  const modal = document.getElementById('reviewModal');
+  if (event.target == modal) {
+    closeReviewModal();
+  }
+}
 </script>
 
 </body>

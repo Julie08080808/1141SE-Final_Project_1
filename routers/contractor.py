@@ -18,6 +18,7 @@ import shutil
 import os
 from db import getDB
 from auth import get_current_user
+from datetime import datetime, timedelta
 
 
 # --------------------------------------------------------
@@ -76,12 +77,28 @@ async def get_my_bids(
 ):
     # 從資料庫撈取此接案人所有投標紀錄
     my_bids = await crud.get_bids_by_contractor_id(conn, user["uid"])
+
+    # ✅ 【關鍵修正】為每個已完成的專案檢查是否已評價
+    for bid in my_bids:
+        # 只有已完成的專案才需要檢查評價狀態
+        if bid['project_status'].strip() == 'completed':
+            # 檢查是否已經評價過這個專案
+            reviewed = await crud.check_if_reviewed(conn, bid['project_id'], user["uid"])
+            bid['has_reviewed'] = reviewed is not None  # 如果有紀錄就是 True
+        else:
+            bid['has_reviewed'] = False  # 非 completed 狀態不需評價
     
+    # 同時撈取此接案人收到的評價紀錄
+    given_reviews = await crud.get_my_given_reviews(conn, user["uid"])
+    
+
     # 回傳模板顯示投標清單
     return templates.TemplateResponse("my_bids.html", {
         "request": request,
         "user_name": user["name"].strip(),
-        "bids": my_bids   # 投標紀錄資料列表
+        "bids": my_bids,   # 投標紀錄資料列表
+        "given_reviews": given_reviews,  # <--- 關鍵：把評價資料傳給網頁
+        "active_tab": "bids"  # 頁面切換用
     })
 
 
@@ -210,3 +227,58 @@ async def process_deliverable(
     
     # 成功後導回「我的投標」頁面
     return RedirectResponse(url="/contractor/my-bids", status_code=status.HTTP_302_FOUND)
+
+
+# --------------------------------------------------------
+# 📦 路由 6
+# --------------------------------------------------------
+
+@router.post("/project/{project_id}/review")
+async def submit_review(
+    project_id: int,
+    score_1: int = Form(...), 
+    score_2: int = Form(...), 
+    score_3: int = Form(...), 
+    comment: str = Form(""),
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 1. 抓取專案
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="專案不存在")
+    
+    # 2. 檢查狀態 (只有已完成才能評)
+    if project["status"].strip() != 'completed':
+        raise HTTPException(status_code=400, detail="只有已完成的專案才能評價")
+        
+    client_id = project['client_id']
+
+    # 檢查期限 (結案後7天內)
+    if project['completed_at']:
+        deadline = project['completed_at'] + timedelta(days=7)
+        if datetime.now() > deadline:
+            raise HTTPException(status_code=400, detail="已超過評價期限 (7天)，無法進行評價。")
+    else:
+        # 防呆：如果是 completed 狀態但沒有時間，代表資料異常
+        raise HTTPException(status_code=400, detail="專案結案時間資料異常")
+
+    # 4. 檢查是否重複評價
+    if await crud.check_if_reviewed(conn, project_id, user['uid']):
+        return RedirectResponse(url="/contractor/my-bids", status_code=303)
+
+    # 5. 寫入評價
+    await crud.create_review(
+        conn=conn,
+        project_id=project_id,
+        reviewer_id=user['uid'],           # 我 (接案人)
+        reviewee_id=client_id,             # 他 (委託人)
+        role_type='contractor_to_client',  # 方向：乙方評甲方
+        s1=score_1, 
+        s2=score_2, 
+        s3=score_3,
+        comment=comment
+    )
+
+    # 6. 成功導回
+    return RedirectResponse(url="/contractor/my-bids", status_code=303)

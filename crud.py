@@ -6,6 +6,7 @@
 # crud.py (*** 真正終極完整版 v3.2 ***)
 from psycopg import Connection
 from datetime import date   #讓你處理「日期」相關的資料
+from psycopg.rows import dict_row #讓查詢結果變成「字典格式」，方便以欄位名稱取值（而不是用索引位置）。
 
 # --- Auth (身份驗證) ---
 # 透過使用者名稱查詢使用者（登入時使用）
@@ -209,7 +210,18 @@ async def get_bids_by_contractor_id(conn: Connection, contractor_id: int):
     sql = """
         SELECT 
             b.id as bid_id, b.price, b.status as bid_status,
-            p.id as project_id, p.title as project_title, p.status as project_status
+            p.id as project_id, p.title as project_title, p.status as project_status,
+            EXISTS(
+                SELECT 1 FROM reviews r 
+                WHERE r.project_id = p.id 
+                AND r.reviewer_id = b.contractor_id
+            ) as has_reviewed,
+            CASE 
+                WHEN p.completed_at IS NOT NULL 
+                     AND (p.completed_at + INTERVAL '7 DAY' < NOW()) 
+                THEN TRUE 
+                ELSE FALSE 
+            END as is_review_expired
         FROM bids b
         JOIN projects p ON b.project_id = p.id
         WHERE b.contractor_id = %s
@@ -272,7 +284,22 @@ async def get_projects_by_client_id_with_bid_count(conn: Connection, client_id: 
             p.*, 
             u.name as contractor_name,
             b.price as final_price,
-            (SELECT COUNT(*) FROM bids WHERE project_id = p.id) as bid_count
+            (SELECT COUNT(*) FROM bids WHERE project_id = p.id) as bid_count,
+
+            EXISTS(
+                SELECT 1 FROM reviews r 
+                WHERE r.project_id = p.id 
+                AND r.reviewer_id = p.client_id
+            ) as has_reviewed,
+
+            -- 檢查是否超過 7 天評價期限
+            CASE 
+                WHEN p.completed_at IS NOT NULL 
+                     AND (p.completed_at + INTERVAL '7 DAY' < NOW()) 
+                THEN TRUE 
+                ELSE FALSE 
+            END as is_review_expired
+
         FROM projects p
         LEFT JOIN bids b ON p.accepted_bid_id = b.id
         LEFT JOIN users u ON b.contractor_id = u.uid
@@ -470,4 +497,57 @@ async def get_all_open_projects_with_bid_count(conn: Connection):
     async with conn.cursor() as cur:
         await cur.execute(sql)
         return await cur.fetchall()
+
+
+# 1. 建立評價 (寫入資料庫)
+async def create_review(conn: Connection, project_id: int, reviewer_id: int, reviewee_id: int, role_type: str, s1: int, s2: int, s3: int, comment: str):
+    """
+    建立一筆新的評價
+    role_type: 'contractor_to_client' (接案評委託) 或 'client_to_contractor' (委託評接案)
+    """
+    sql = """
+        INSERT INTO reviews 
+        (project_id, reviewer_id, reviewee_id, role_type, score_1, score_2, score_3, comment, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        RETURNING id
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(sql, (
+            project_id, reviewer_id, reviewee_id, role_type, s1, s2, s3, comment
+        ))
+        await conn.commit()
+        return await cur.fetchone()
+
+# 2. 檢查是否評價過 (避免重複評價)
+async def check_if_reviewed(conn: Connection, project_id: int, reviewer_id: int):
+    """
+    檢查這個人 (reviewer_id) 是否已經對這個專案 (project_id) 評價過了
+    """
+    sql = "SELECT id FROM reviews WHERE project_id = %s AND reviewer_id = %s"
+    async with conn.cursor() as cur:
+        await cur.execute(sql, (project_id, reviewer_id))
+        return await cur.fetchone()
+
+
+# --- [ 取得我給出的所有評價 ] ---
+async def get_my_given_reviews(conn: Connection, user_id: int):
+    sql = """
+        SELECT 
+            r.id, r.project_id, p.title as project_title,
+            r.role_type, r.score_1, r.score_2, r.score_3,
+            r.comment, r.created_at, u.name as reviewee_name
+        FROM reviews r
+        JOIN projects p ON r.project_id = p.id
+        JOIN users u ON r.reviewee_id = u.uid
+        WHERE r.reviewer_id = %s
+        ORDER BY r.created_at DESC
+    """
     
+    # ⭐ 關鍵改變：加上 row_factory=dict_row
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(sql, (user_id,))
+        
+        # 直接回傳！它已經自動變成字典列表了，不用自己轉
+        return await cur.fetchall()
+    
+
