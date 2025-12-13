@@ -265,19 +265,13 @@
   
   <hr>
 
-  <!-- ========================================
-       投標與交付邏輯 (✅ 加入重複投標檢查)
-       ======================================== -->
-
   {% if user.user_type.strip() == 'client' and user.uid == project.client_id %}
-    <!-- 1. 委託人看自己的專案 -->
     <div class="admin-links">
         <h2>📊 專案管理</h2>
         <p>這是你的專案,你可以 <a href="/client/project/{{ project.id }}/manage">點此管理投標與驗收</a>。</p>
     </div>
   
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() == 'in_progress' and user.uid == project.accepted_contractor_id %}
-    <!-- 2. 接案人(得標者)交付檔案 -->
     <div class="bid-form">
       <h2>🏆 交付你的成果</h2>
       
@@ -315,7 +309,6 @@
     </div>
   
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() not in ['open', 'in_progress'] and user.uid == project.accepted_contractor_id %}
-    <!-- 3. 接案人(得標者)查看已結案專案 -->
     <div class="bid-form">
       <h2>✅ 你的交付紀錄</h2>
       <p>你是這個專案的得標者。以下是你的交付紀錄:</p>
@@ -339,10 +332,7 @@
     </div>
 
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() == 'open' %}
-    <!-- 4. 接案人投標區域 (✅ 重點修改:檢查 has_bid 或 my_bid) -->
-    
     {% if has_bid or my_bid %}
-      <!-- ✅ 已經投過標了 -->
       <div class="already-bid">
         <h2>✅ 你已投標此專案</h2>
         <p>你已經對此專案提交過報價,<strong>無法重複投標</strong>。</p>
@@ -351,6 +341,16 @@
         <div class="info-box">
           <p><strong>你的報價:</strong> ${{ "%.2f"|format(my_bid['price']) }}</p>
           <p><strong>提案說明:</strong> {{ my_bid['message'] or '(無)' }}</p>
+          
+          {% if my_bid.proposal_url %}
+          <p>
+            <strong>計畫書:</strong> 
+            <a href="{{ my_bid.proposal_url }}" target="_blank">
+              📄 點此檢視已上傳的計劃書 (PDF)
+            </a>
+          </p>
+          {% endif %}
+
           <p><strong>投標狀態:</strong> 
             {% if my_bid['status'] == 'pending' %}
               <span style="color: #ff9800;">⏳ 等待委託人審核</span>
@@ -371,18 +371,41 @@
       </div>
       
     {% else %}
-      <!-- ✅ 尚未投標,顯示投標表單 -->
       <div class="bid-form">
         <h2>💰 提交我的報價</h2>
-        <form action="/project/{{ project.id }}/bid" method="post">
+        <form action="/project/{{ project.id }}/bid" method="post" enctype="multipart/form-data" onsubmit="return checkFileExtension(event)"> 
           <div>
             <label for="price">我的報價 ($):</label>
             <input type="number" id="price" name="price" step="0.01" min="0" placeholder="例如: 3000.00" required>
           </div>
+
+          <div style="margin-top: 15px;">
+            <label for="proposal_file">上傳計畫書 (限PDF檔):</label>
+            <input type="file" id="proposal_file" name="proposal_file" accept=".pdf" required onchange="checkFileTypeAndShowWarning()">
+            
+            <div id="file-warning-area" style="display: none; margin-top: 10px; padding: 15px; border-radius: 8px; background-color: #fff6f6; border: 1px solid #ffcccc; color: #cc0000; line-height: 1.6;">
+                <p style="margin: 0 0 10px; font-weight: bold;">
+                    ⚠️ 格式警告：您選擇的檔案 <span id="selected-filename" style="font-style: italic; color: #990000;"></span> 不是 PDF 格式。
+                </p>
+                <p style="margin: 0;">
+                    我們要求 PDF 格式，建議您先轉換檔案：
+                    <a href="https://smallpdf.com/zh-TW/pdf-converter" target="_blank"
+                       style="display: inline-block; background-color: #ff9800; color: white; border-radius: 5px; padding: 8px 12px; font-size: 14px; margin-left: 10px; text-decoration: none; font-weight: bold; border: none; cursor: pointer;">
+                        🛠️ 立即前往轉檔 (開啟新分頁)
+                    </a>
+                </p>
+            </div>
+
+            <div class="warning-text">
+              ⚠️ 重要：上傳詳細的計劃書對委託人是很重要der!
+            </div>
+          </div>
+          
           <div style="margin-top: 15px;">
             <label for="message">提案說明 (選填):</label>
             <textarea id="message" name="message" rows="5" placeholder="請簡短說明你的服務內容、優勢、預計交付時間等..."></textarea>
           </div>
+          
           <button type="submit" style="margin-top: 15px;">提交報價</button>
         </form>
         
@@ -393,7 +416,6 @@
     {% endif %}
   
   {% elif project.status.strip() != 'open' %}
-    <!-- 5. 專案已關閉 -->
     <div class="info-box">
       <p><strong>此專案已結案或正在進行中,無法投標。</strong></p>
     </div>
@@ -492,6 +514,72 @@
     </a>
   </div>
 </div>
+
+<script>
+    // 🎯 [新增] 檔案檢查函式，用於 onchange 事件 (即時回饋)
+    function checkFileTypeAndShowWarning() {
+        const fileInput = document.getElementById('proposal_file');
+        const warningArea = document.getElementById('file-warning-area');
+        const filenameSpan = document.getElementById('selected-filename');
+
+        warningArea.style.display = 'none'; // 預設隱藏警告區
+
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+            
+            if (fileExtension !== 'pdf') {
+                filenameSpan.textContent = `"${fileName}"`;
+                warningArea.style.display = 'block'; // 顯示警告
+            }
+        }
+    }
+
+    // 🎯 [修改] 表單提交時的檢查 (onsubmit) - 阻止非 PDF 檔案提交，並在彈窗內提供跳轉選項
+    function checkFileExtension(event) {
+        const fileInput = document.getElementById('proposal_file');
+        
+        // 檢查檔案是否已選擇
+        if (fileInput.files.length === 0) {
+            return true; 
+        }
+        
+        const file = fileInput.files[0];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+
+        if (fileExtension !== 'pdf') {
+            event.preventDefault(); // 阻止表單提交
+            
+            // 彈窗詢問用戶是否確定跳轉轉檔網站 (實現您要求的「8000說」彈窗內提供跳轉)
+            const confirmJump = confirm(
+                '❌ 提交失敗！計畫書必須為 PDF 格式。\n\n' +
+                '請問要跳轉到線上轉檔網站嗎？\n' +
+                '(點擊「確定」前往轉檔；點擊「取消」回到表單)'
+            );
+            
+            if (confirmJump) {
+                // 如果用戶點擊「確定」，則跳轉到轉檔網站
+                window.open('https://smallpdf.com/zh-TW/pdf-converter', '_blank'); 
+            }
+
+            return false; // 始終返回 false，阻止非 PDF 檔案的提交
+        }
+        
+        return true; // 是 PDF 檔案，允許提交
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // 檢查是否有錯誤訊息
+        const errorDetail = '{{ request.query_params.get("error_detail", "") }}';
+        
+        if (errorDetail) {
+             // 處理錯誤：只顯示彈窗
+             const decodedError = decodeURIComponent(errorDetail.replace(/\+/g, ' '));
+             alert(`操作失敗：${decodedError}`);
+        }
+    });
+</script>
 
 </body>
 </html>

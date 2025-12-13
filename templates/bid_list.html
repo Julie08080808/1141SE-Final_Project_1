@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>暨柴工作委託平台</title>
 
-<!-- 🎨 CSS 主題樣式區 -->
 <style>
   /* --- 🩷 主題顏色變數設定 --- */
   :root {
@@ -188,18 +187,11 @@
 </head>
 
 <body>
-<!-- 🌸 頁首區：標題與返回儀表板按鈕 -->
 <header>
-  <h2>🌻 管理專案</h2> <!-- 左邊主標 -->
-  <a href="/client/dashboard">返回我的儀表板</a> <!-- 右邊按鈕 -->
-</header>
+  <h2>🌻 管理專案</h2> <a href="/client/dashboard">返回我的儀表板</a> </header>
 
-<!-- 📦 主內容區 -->
 <main>
-  <h1>我的專案：{{ project.title.strip() }}</h1> <!-- 顯示專案名稱 -->
-
-  <!-- ✏️ 若專案開放中可編輯 -->
-  <div class="action-links">
+  <h1>我的專案：{{ project.title.strip() }}</h1> <div class="action-links">
     {% if project.status.strip() == 'open' %}
       <a href="/client/project/{{ project.id }}/edit">
         <button>✏️ 編輯專案內容</button>
@@ -207,7 +199,6 @@
     {% endif %}
   </div>
 
-  <!-- 📋 專案詳細資料 -->
   <div class="project-details">
     <h3>📋 專案詳情</h3>
     <p><strong>目前狀態：</strong> {{ project.status.strip() }}</p>
@@ -223,7 +214,6 @@
     {% endif %}
   </div>
 
-  <!-- 💰 收到的報價區塊 -->
   <h2>💰 收到的報價</h2>
   {% if bids %}
     <table>
@@ -233,6 +223,7 @@
           <th>評價</th>
           <th>報價金額</th>
           <th>留言</th>
+          <th>計畫書</th> 
           <th>狀態</th>
           <th>操作</th>
         </tr>
@@ -263,10 +254,20 @@
           </td>
           <td>${{ "%.2f"|format(bid.price) }}</td>
           <td>{{ bid.message }}</td>
+
+          <td>
+            {% if bid.proposal_url %}
+              <a href="{{ bid.proposal_url }}" target="_blank" style="color: var(--theme-red); font-weight: bold;">
+                📄 下載
+              </a>
+            {% else %}
+              <span style="color: #999;">(無)</span>
+            {% endif %}
+          </td>
+
           <td>{{ bid.status.strip() }}</td>
           <td>
             {% if bid.status.strip() == 'pending' and project.status.strip() == 'open' %}
-              <!-- 按下按鈕可選擇此報價為得標者 -->
               <form action="/client/project/{{ project.id }}/select/{{ bid.id }}" method="post" style="margin:0;">
                 <button type="submit">選擇此報價</button>
               </form>
@@ -284,7 +285,6 @@
     <p style="color:#888;">這個專案目前還沒有人報價。</p>
   {% endif %}
 
-  <!-- 📦 若專案有交付檔案（非 open 狀態才會顯示） -->
   {% if project.status.strip() in ['submitted', 'completed', 'in_progress'] %}
   <h2>📦 交付的檔案</h2>
 
@@ -308,11 +308,9 @@
           <td>{{ deliverable.status.strip() }}</td>
           <td>
             {% if deliverable.status.strip() == 'submitted' %}
-              <!-- ✅ 接受成果並結案 -->
               <form action="/client/project/{{ project.id }}/deliverable/{{ deliverable.id }}/approve" method="post" style="display:inline;">
                 <button type="submit" style="background-color: #d4edda;">✅ 接受並結案</button>
               </form>
-              <!-- ❌ 駁回成果 -->
               <form action="/client/project/{{ project.id }}/deliverable/{{ deliverable.id }}/reject" method="post" style="display:inline;">
                 <button type="submit" style="background-color: #f8d7da;">❌ 退件</button>
               </form>
@@ -331,14 +329,13 @@
   {% endif %}
   {% endif %}
 
-  <!-- 🔙 返回上一頁按鈕 -->
   <br/>
   <div style="text-align:center; margin-top: 20px;">
     <button onclick="window.history.back()" 
         style="background-color: var(--theme-red); color: white; border: 2px solid var(--theme-red);
                padding: 10px 18px; font-size: 16px; font-weight: bold; cursor: pointer;
                border-radius: 10px; transition: background 0.3s, border-color 0.3s;">
-     ⬅ 返回上一頁
+      ⬅ 返回上一頁
     </button>
   </div>
 </main>

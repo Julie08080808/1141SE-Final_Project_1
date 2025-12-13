@@ -3,7 +3,8 @@
 # 這個檔案負責與 PostgreSQL 資料庫溝通，
 # 提供各模組 (auth.py, routers/client.py, routers/contractor.py...) 呼叫的資料處理函式。
 # 使用 psycopg + async cursor 執行 SQL 查詢。
-# crud.py (*** 真正終極完整版 v3.2 ***)
+# crud.py (*** 真正終極完整版 v3.3 ***)
+
 from psycopg import Connection
 from datetime import date   #讓你處理「日期」相關的資料
 from psycopg.rows import dict_row #讓查詢結果變成「字典格式」，方便以欄位名稱取值（而不是用索引位置）。
@@ -14,8 +15,7 @@ async def get_user_by_name(conn: Connection, name: str):
     async with conn.cursor() as cur:    # 建立游標物件
         await cur.execute("SELECT * FROM users WHERE name = %s", (name,))
         user = await cur.fetchone()
-        print("[DEBUG]", user)
-        print("[DEBUG]", type(user))
+        # print("[DEBUG]", user)
         return user
 
 # 透過使用者 ID 查詢（Session 驗證時使用）
@@ -83,7 +83,6 @@ async def update_project(
 
 
 # 委託人：查看自己所有專案（含得標者與成交價）
-# 新版 (v3.0): "同時" 抓取 "得標者" 的名字 和 "成交價格"
 async def get_projects_by_client_id(conn: Connection, client_id: int):
     sql = """
         SELECT 
@@ -104,7 +103,7 @@ async def get_projects_by_client_id(conn: Connection, client_id: int):
 
 
 # --- Contractor (接案人) ---
-# # 接案人儀表板：取得所有公開中的專案(只抓 'open')
+# 接案人儀表板：取得所有公開中的專案(只抓 'open')
 async def get_open_projects(conn: Connection):
     sql = """
         SELECT p.*, u.name as client_name
@@ -125,14 +124,10 @@ async def get_project_by_id(conn: Connection, project_id: int):
         SELECT 
             p.*, 
             u.name as client_name,
-            b.contractor_id as accepted_contractor_id  -- <-- [ 新增 ]
+            b.contractor_id as accepted_contractor_id
         FROM projects p
-        
         JOIN users u ON p.client_id = u.uid
-        
-        -- [ 新增 ] 我們用 LEFT JOIN，因為 'open' 專案還沒有 accepted_bid_id
         LEFT JOIN bids b ON p.accepted_bid_id = b.id 
-        
         WHERE p.id = %s
     """
     async with conn.cursor() as cur:
@@ -145,7 +140,8 @@ async def get_project_by_id(conn: Connection, project_id: int):
 # --- Bids (報價) ---
 
 # 建立投標 (含重複檢查)
-async def create_bid(conn: Connection, project_id: int, contractor_id: int, price: float, message: str):
+# 🎯 [修改] 新增 proposal_url 參數，並寫入資料庫
+async def create_bid(conn: Connection, project_id: int, contractor_id: int, price: float, message: str, proposal_url: str | None = None):
     """建立投標 - 加入重複投標檢查"""
     # ✅ 先檢查是否已經投過標
     async with conn.cursor() as cur:
@@ -159,16 +155,17 @@ async def create_bid(conn: Connection, project_id: int, contractor_id: int, pric
     
     # 若無重複 → 寫入資料
     sql = """
-        INSERT INTO bids (project_id, contractor_id, price, message, status)
-        VALUES (%s, %s, %s, %s, 'pending')
+        INSERT INTO bids (project_id, contractor_id, price, message, status, proposal_url)
+        VALUES (%s, %s, %s, %s, 'pending', %s)
         RETURNING id
     """
     async with conn.cursor() as cur:
-        await cur.execute(sql, (project_id, contractor_id, price, message))
+        await cur.execute(sql, (project_id, contractor_id, price, message, proposal_url))
         await conn.commit()
         return await cur.fetchone()
 
 # 取得專案所有投標紀錄（含接案人名稱）
+# 🎯 [注意] 委託人在管理頁面需要看到 proposal_url
 async def get_bids_for_project(conn: Connection, project_id: int):
     sql = """
         SELECT b.*, u.name as contractor_name,
@@ -210,8 +207,6 @@ async def select_bid_for_project(conn: Connection, project_id: int, bid_id: int)
         await conn.commit()
         return True
 
-
-
 # 接案人查看自己所有投標紀錄
 async def get_bids_by_contractor_id(conn: Connection, contractor_id: int):
     sql = """
@@ -239,10 +234,11 @@ async def get_bids_by_contractor_id(conn: Connection, contractor_id: int):
         bids = await cur.fetchall()
         return bids
 
-#  查詢某個承包商對某個專案的投標紀錄
+# 查詢某個承包商對某個專案的投標紀錄
+# 🎯 [修改] 必須撈出 proposal_url 欄位
 async def get_bid_by_project_and_contractor(conn, project_id: int, contractor_id: int):
     sql = """
-        SELECT id, price, status, message
+        SELECT id, price, status, message, proposal_url
         FROM bids
         WHERE project_id = %s AND contractor_id = %s
         LIMIT 1
@@ -252,7 +248,7 @@ async def get_bid_by_project_and_contractor(conn, project_id: int, contractor_id
         row = await cur.fetchone()
         return dict(row) if row else None
 
-#   檢查是否已投標  (確認某個承包商是否已對某個專案投標) 
+# 檢查是否已投標
 async def check_existing_bid(conn: Connection, project_id: int, contractor_id: int):
     """檢查是否已投標"""
     sql = "SELECT COUNT(*) as count FROM bids WHERE project_id = %s AND contractor_id = %s"
@@ -260,7 +256,6 @@ async def check_existing_bid(conn: Connection, project_id: int, contractor_id: i
         await cur.execute(sql, (project_id, contractor_id))
         result = await cur.fetchone()
         return result['count'] > 0
-
 
 # 更新投標價格（限 pending 狀態）
 async def update_bid_price(conn: Connection, bid_id: int, contractor_id: int, new_price: float):
@@ -279,13 +274,6 @@ async def update_bid_price(conn: Connection, bid_id: int, contractor_id: int, ne
 # --- Client (委託人) ---
 # 新版：取得委託人的專案，同時統計投標數
 async def get_projects_by_client_id_with_bid_count(conn: Connection, client_id: int):
-    """
-    取得委託人的所有專案，包含：
-    - 基本專案資訊
-    - 得標者名稱 (contractor_name)
-    - 成交價格 (final_price)
-    - 投標數量 (bid_count) ← 新增
-    """
     sql = """
         SELECT 
             p.*, 
@@ -402,20 +390,10 @@ async def reject_deliverable(conn: Connection, project_id: int, deliverable_id: 
         return True
 
 
-
 # --- [ History (歷史紀錄) v3.2 - 完整欄位版本 ] ---
 
-# 1. 取得"委託人"的歷史紀錄 (所有專案 + 得標者 + 完整時間資訊 + 投標數)
+# 1. 取得"委託人"的歷史紀錄
 async def get_client_history(conn: Connection, client_id: int):
-    """
-    委託人歷史欄位：
-    - 創立時間 (created_at)
-    - 專案標題 (title)
-    - 接案人 (contractor_name) 或投標數 (bid_count)
-    - 專案狀態 (status)
-    - 截止日期 (deadline)
-    - 實際完成日期 (completed_at)
-    """
     sql = """
         SELECT 
             p.id,
@@ -439,20 +417,8 @@ async def get_client_history(conn: Connection, client_id: int):
         await cur.execute(sql, (client_id,))
         return await cur.fetchall()
 
-
-# 2. 取得"接案人"的歷史紀錄 (所有投標 + 委託人 + 完整時間資訊)
+# 2. 取得"接案人"的歷史紀錄
 async def get_contractor_history(conn: Connection, contractor_id: int):
-    """
-    接案人歷史欄位：
-    - 接案時間 (bid_created_at)
-    - 專案標題 (title)
-    - 委託人 (client_name)
-    - 我的狀態 (my_bid_status + project_status)
-    - 委託人預算 (budget)
-    - 我的報價 (price)
-    - 截止日期 (deadline)
-    - 實際完成日期 (completed_at)
-    """
     sql = """
         SELECT 
             p.id,
@@ -478,13 +444,8 @@ async def get_contractor_history(conn: Connection, contractor_id: int):
         await cur.execute(sql, (contractor_id,))
         return await cur.fetchall()
     
-
 # --- [ 取得所有公開招標專案（含投標數）] ---
 async def get_all_open_projects_with_bid_count(conn: Connection):
-    """
-    取得所有公開招標中的專案，並統計投標數
-    供委託人瀏覽參考
-    """
     sql = """
         SELECT 
             p.id,
@@ -605,3 +566,4 @@ async def get_user_received_reviews_public(conn: Connection, user_id: int):
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(sql, (user_id,))
         return await cur.fetchall()
+

@@ -1,4 +1,4 @@
-# main.py (*** 終極完整版 + 註解 ***)
+# main.py (*** 終極完整版 + 註解 ***) *1
 
 # --- [ 1. 導入函式庫 ] ---
 from fastapi import FastAPI, Request   #在 FastAPI 中，FastAPI這個類別負責處理 HTTP 請求和回應的所有邏輯。Request 這是處理 HTTP 請求的物件，通常在路由處理函數中作為參數來存取請求的內容，如 URL、標頭、表單數據等。

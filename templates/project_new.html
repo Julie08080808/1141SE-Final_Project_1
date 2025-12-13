@@ -147,24 +147,31 @@
   <p>請填寫以下表單以發布你的專案需求。</p>
 
   <form action="/client/project/new" method="post" enctype="multipart/form-data">
+    
+    {% if error_message %}
+    <div style="color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        ⚠️ {{ error_message }}
+    </div>
+    {% endif %}
+
     <div>
       <label for="title">專案標題：</label>
-      <input type="text" id="title" name="title" required>
+      <input type="text" id="title" name="title" value="{{ title if title else '' }}" required>
     </div>
 
     <div>
       <label for="description">專案描述：</label>
-      <textarea id="description" name="description" rows="5" placeholder="請簡要說明你的專案需求..."></textarea>
+      <textarea id="description" name="description" rows="5" placeholder="請簡要說明你的專案需求...">{{ description if description else '' }}</textarea>
     </div>
 
     <div>
       <label for="budget">預算 ($)：</label>
-      <input type="number" id="budget" name="budget" step="0.01" placeholder="例如：500.00">
+      <input type="number" id="budget" name="budget" step="0.01" placeholder="例如：500.00" value="{{ budget if budget else '' }}">
     </div>
 
     <div>
       <label for="deadline">截止日期：</label>
-      <input type="date" id="deadline" name="deadline" required>
+      <input type="date" id="deadline" name="deadline" value="{{ deadline if deadline else '' }}" required>
     </div>
 
     <div>

@@ -6,43 +6,39 @@
 # 3️⃣ 查看歷史紀錄（委託人與接案人共用）
 # --------------------------------------------------------
 
-
-# routers/public.py 
-from fastapi import APIRouter, Depends, Form, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Form, Request, HTTPException, status, UploadFile, File 
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from psycopg import Connection
 from db import getDB
 from auth import get_current_user
 import crud
-
-
+from pathlib import Path 
+import re # 用於清理檔名
 
 # --------------------------------------------------------
 # 🧩 初始化設定區段
 # --------------------------------------------------------
 router = APIRouter(
-    tags=["Public"],     # Swagger 分類標籤 
-    dependencies=[Depends(get_current_user)]   # ✅ 所有路由需登入後才能使用
+    tags=["Public"],     
+    dependencies=[Depends(get_current_user)]   
 )
 
-templates = Jinja2Templates(directory="templates")   # 設定 HTML 模板資料夾
-
+templates = Jinja2Templates(directory="templates") 
 
 # --------------------------------------------------------
 # 📄 路由 1: "查看專案詳情" (GET)
 # --------------------------------------------------------
-# 路由 1: "查看專案詳情" (GET)
 @router.get("/project/{project_id}", response_class=HTMLResponse)
 async def get_project_details(
-    project_id: int,                         # 從網址取得專案 ID
-    request: Request,                        # 當前請求物件 (含 session)
-    conn: Connection = Depends(getDB),       # 自動取得資料庫連線
-    user: dict = Depends(get_current_user)   # 目前登入使用者資料
+    project_id: int,                         
+    request: Request,                        
+    conn: Connection = Depends(getDB),       
+    user: dict = Depends(get_current_user)   
 ):
     # 1️⃣ 取得專案詳情資料
     project = await crud.get_project_by_id(conn, project_id)
-    if not project:                          # 如果查不到資料
+    if not project:                          
         raise HTTPException(status_code=404, detail="Project not found")
 
     # 2️⃣ 如果專案不是「open」狀態，就撈交付檔案（deliverables）
@@ -52,20 +48,23 @@ async def get_project_details(
 
     # 3️⃣ 若登入者是接案人，查出他是否已對此專案投標
     my_bid = None
-    has_bid = False                          # 預設尚未投標
-    if user["user_type"].strip() == "contractor":   # 檢查角色
+    has_bid = False                          
+    if user["user_type"].strip() == "contractor":   
+        # 查詢時會包含 proposal_url，用於前端顯示
         my_bid = await crud.get_bid_by_project_and_contractor(
             conn, project_id, user["uid"]
         )
-        has_bid = (my_bid is not None)       # True 表示已投標
+        has_bid = (my_bid is not None)       
+
 
     client_id = project['client_id']
     client_stats = await crud.get_user_reputation_stats(conn, client_id)
     client_reviews = await crud.get_user_received_reviews_public(conn, client_id)
 
     # 4️⃣ 回傳模板，顯示專案詳情頁面
+
     return templates.TemplateResponse(
-        "project_detail.html",               # 對應的 HTML 模板
+        "project_detail.html",               
         {
             "request": request,              # 傳入請求物件（Jinja2 需要）
             "user": user,                    # 登入者資料（顯示名稱或角色）
@@ -78,41 +77,84 @@ async def get_project_details(
         },
     )
 
-
-
 # --------------------------------------------------------
 # 💰 路由 2: "提交該專案報價" (POST)
 # --------------------------------------------------------
 @router.post("/project/{project_id}/bid", response_class=RedirectResponse)
 async def submit_bid(
-    project_id: int,                         # 專案 ID
+    project_id: int,                         
     request: Request,
-    price: float = Form(...),                # 投標價格
-    message: str = Form(""),                 # 投標留言（可空）
+    price: float = Form(...),                
+    message: str = Form(""),                 
+    proposal_file: UploadFile = File(None),  # 接收檔案 (PDF)
     conn: Connection = Depends(getDB),
     user: dict = Depends(get_current_user),
 ):
     # 限制只有接案人可以投標
     if user["user_type"].strip() != "contractor":
         raise HTTPException(status_code=403, detail="只有接案人可以投標")
+
+    proposal_url = None
     
+    # 1. 處理檔案上傳
+    if proposal_file and proposal_file.filename:
+        # 檢查檔案類型是否為 PDF
+        if proposal_file.content_type != "application/pdf":
+            raise HTTPException(
+                status_code=400, 
+                detail="上傳的檔案格式錯誤：請確保您上傳的是 PDF 檔案 (.pdf)。"
+            )
+        
+        # 🎯 [路徑邏輯] 專案ID資料夾 -> bids
+        UPLOAD_DIR = Path("uploads") / f"project_{project_id}" / "bids"
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True) 
+
+        # 🎯 [檔名邏輯] 使用者帳號 + 原始檔名 (清理特殊字元)
+        contractor_name = user["name"].strip()
+        
+        # 清理使用者名稱 (只保留英數、下底線、連字號)
+        safe_username = re.sub(r'[^\w\-]', '', contractor_name)
+        
+        # 清理原始檔名
+        original_filename = Path(proposal_file.filename).name
+        file_extension = Path(original_filename).suffix
+        # 取得主檔名，並替換特殊字元為 _
+        stem = original_filename[:-len(file_extension)] if file_extension else original_filename
+        safe_stem = re.sub(r'[^\w\-]', '_', stem)
+        
+        # 組合: 帳號_檔名.pdf
+        final_filename = f"{safe_username}_{safe_stem}{file_extension}"
+        
+        file_path = UPLOAD_DIR / final_filename
+
+        try:
+            with open(file_path, "wb") as buffer:
+                buffer.write(await proposal_file.read()) 
+            
+            # 產生 URL (對應 main.py 的 StaticFiles 掛載點)
+            proposal_url = f"/uploads/project_{project_id}/bids/{final_filename}" 
+
+        except Exception as e:
+            print(f"File upload error: {e}")
+            raise HTTPException(status_code=500, detail="檔案儲存失敗。")
+
+    # 2. 建立投標紀錄
     try:
-        # 呼叫 CRUD 函式，建立投標紀錄
         await crud.create_bid(
             conn=conn,
             project_id=project_id,
-            contractor_id=user["uid"],        # 登入者的 ID
+            contractor_id=user["uid"],
             price=price,
             message=message,
+            proposal_url=proposal_url,  # 寫入資料庫
         )
-        # 投標成功 → 導回我的投標列表
         return RedirectResponse(url="/contractor/my-bids", status_code=status.HTTP_302_FOUND)
     
     except ValueError as e:
-        # ✅ 若重複投標（create_bid 內部檢查），丟出錯誤訊息
         raise HTTPException(status_code=400, detail=str(e))
-
-
+    except Exception as e:
+        print(f"Database error on create_bid: {e}")
+        raise HTTPException(status_code=500, detail="提交報價時發生資料庫錯誤。")
 
 # --------------------------------------------------------
 # 🕓 路由 3: "歷史紀錄" (GET)
@@ -123,23 +165,21 @@ async def get_history_page(
     conn: Connection = Depends(getDB),
     user: dict = Depends(get_current_user),
 ):
-    user_type = user["user_type"].strip()    # 判斷角色 (client / contractor)
-    projects = []                            # 存放歷史專案紀錄
+    user_type = user["user_type"].strip()
+    projects = []
 
-    # 根據角色查詢不同的歷史紀錄
     if user_type == "client":
         projects = await crud.get_client_history(conn, user["uid"])
     else:
         projects = await crud.get_contractor_history(conn, user["uid"])
 
-    # 回傳模板，顯示歷史頁面
     return templates.TemplateResponse(
         "history.html",
         {
-            "request": request,              # 給模板用的 request
+            "request": request,
             "user_name": user["name"].strip(),
-            "user_type": user_type,          # 用於模板顯示角色名稱
-            "projects": projects,            # 歷史專案清單
+            "user_type": user_type,
+            "projects": projects,
         },
     )
 
