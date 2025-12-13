@@ -179,6 +179,11 @@
   .action-links a button {
     margin-left: 10px;
   }
+
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+  .modal-card { background: white; width: 500px; max-height: 80vh; padding: 30px; border-radius: 15px; position: relative; display: flex; flex-direction: column; }
+  .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #aaa; }
+  .reviews-list { overflow-y: auto; flex: 1; margin-top: 15px; border-top: 1px solid #eee; }
 </style>
 </head>
 
@@ -225,6 +230,7 @@
       <thead>
         <tr>
           <th>接案人</th>
+          <th>評價</th>
           <th>報價金額</th>
           <th>留言</th>
           <th>狀態</th>
@@ -234,7 +240,27 @@
       <tbody>
         {% for bid in bids %}
         <tr>
-          <td>{{ bid.contractor_name.strip() }}</td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <img src="https://ui-avatars.com/api/?name={{ bid.contractor_name }}&background=random" 
+              style="width: 35px; height: 35px; border-radius: 50%;">
+              <a href="/profile/{{ bid.contractor_id }}" target="_blank" 
+                style="font-weight: 500; color: #333; text-decoration: none; border-bottom: 1px dotted #999; transition: color 0.2s;">
+                {{ bid.contractor_name.strip() }} ↗
+              </a>
+            </div>
+          </td>
+          <td>
+            {% set score = bid.contractor_avg_score if bid.contractor_avg_score else 0 %}
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <span style="color: #f1c40f; font-weight: bold;">★ {{ "%.1f"|format(score) }}</span>
+              <button type="button" 
+                    onclick="showReputationModal('{{ bid.contractor_id }}', '{{ bid.contractor_name }}')"
+                    style="font-size: 0.8em; padding: 2px 8px; border: 1px solid #ddd; background: white; border-radius: 12px; cursor: pointer; color: #666;">
+                 詳情
+              </button>
+            </div>
+          </td>
           <td>${{ "%.2f"|format(bid.price) }}</td>
           <td>{{ bid.message }}</td>
           <td>{{ bid.status.strip() }}</td>
@@ -316,6 +342,66 @@
     </button>
   </div>
 </main>
+<script>
+async function showReputationModal(userId, userName) {
+    const modal = document.getElementById('reputationModal');
+    modal.style.display = 'flex';
 
+    // 填入基本資料
+    document.getElementById('modal-name').innerText = userName;
+    document.getElementById('modal-avatar').src = `https://ui-avatars.com/api/?name=${userName}&background=random&size=128`;
+    document.getElementById('modal-reviews-list').innerHTML = '<p style="text-align: center; color: #999; margin-top: 20px;">載入中...</p>';
+
+    try {
+        // 呼叫我們剛剛在 client.py 寫的 API
+        const response = await fetch(`/client/api/user/${userId}/reviews`);
+        const data = await response.json();
+
+        // 更新分數
+        document.getElementById('modal-score').innerText = data.stats.avg_score;
+        document.getElementById('modal-count').innerText = data.stats.total_count;
+
+        // 渲染列表
+        const listContainer = document.getElementById('modal-reviews-list');
+        listContainer.innerHTML = '';
+
+        if (data.reviews.length === 0) {
+            listContainer.innerHTML = '<p style="text-align: center; color: #999; margin-top: 20px;">尚無評價紀錄。</p>';
+        } else {
+            data.reviews.forEach(review => {
+                const avg = ((review.score_1 + review.score_2 + review.score_3) / 3).toFixed(1);
+                const dateStr = review.created_at.substring(0, 10);
+                
+                const item = document.createElement('div');
+                item.style.borderBottom = '1px solid #f0f0f0';
+                item.style.padding = '15px 0';
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; font-size:0.9em; color:#666;">
+                        <strong>${review.project_title}</strong>
+                        <span>${dateStr}</span>
+                    </div>
+                    <div style="margin: 5px 0; color: #f1c40f;">★ ${avg}</div>
+                    <div style="color: #333; font-style: italic;">"${review.comment || '無文字評論'}"</div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+    } catch (error) {
+        console.error("Error:", error);
+        document.getElementById('modal-reviews-list').innerHTML = '<p style="color: red; text-align: center;">載入失敗</p>';
+    }
+}
+
+function closeReputationModal() {
+    document.getElementById('reputationModal').style.display = 'none';
+}
+
+window.onclick = function(e) {
+    if (e.target === document.getElementById('reputationModal')) {
+        closeReputationModal();
+    }
+}
+</script>
 </body>
 </html>

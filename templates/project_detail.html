@@ -15,7 +15,196 @@
   header { background-color: var(--pink); color: white; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
   header a { color: white; text-decoration: none; font-weight: bold; }
   header a:hover { text-decoration: underline; }
-  main { max-width: 900px; margin: 40px auto; background-color: white; border-radius: 15px; padding: 30px 40px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+  /* 新增：外層容器 */
+.page-container {
+  max-width: 1400px;
+  margin: 40px auto;
+  padding: 0 20px;
+  display: flex;          /* 👈 使用 Flexbox */
+  gap: 30px;              /* 👈 左右間距 */
+  align-items: flex-start;
+}
+
+/* 左側主內容區 */
+.main-content {
+  flex: 1;                /* 👈 佔據剩餘空間 */
+  min-width: 0;
+  background-color: white;
+  border-radius: 15px;
+  padding: 40px 50px;     /* 👈 內距增加 */
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* 新增：右側評價卡片 */
+.reputation-card {
+  flex: 0 0 320px;        /* 👈 固定寬度 320px */
+  background-color: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  position: sticky;       /* 👈 固定定位 */
+  top: 20px;
+  text-align: left;
+  max-height: calc(100vh - 60px); /* 👈 新增：限制高度 */
+  overflow-y: auto;
+}
+
+.reputation-card .role-badge {
+  display: inline-block;
+  background-color: var(--pink);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75em;
+}
+
+/* 👈 新增：隱藏滾動條 */
+.reputation-card::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+
+/* 🆕 頭像和基本資訊區域 - 橫向排列 */
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #eee;
+  }
+
+  .reputation-card .avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid var(--pink-light);
+    flex-shrink: 0;
+  }
+
+  /* 🆕 右側資訊區 */
+  .profile-info {
+    flex: 1;
+  }
+
+  .client-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--text);
+    margin: 0 0 5px 0;
+  }
+
+/* 評分條目區 */
+.score-item {
+  margin-bottom: 12px;
+}
+
+.score-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85em;
+  margin-bottom: 5px;
+  color: #666;
+}
+
+/* 評分摘要區 */
+.score-summary {
+  margin-bottom: 15px;
+}
+
+.reputation-card .big-score {
+  font-size: 2em;
+  font-weight: bold;
+  color: var(--theme);
+  margin: 0;
+  line-height: 1;
+}
+
+.reputation-card .star-display {
+  color: #f1c40f;
+  font-size: 1em;
+  margin: 5px 0;
+}
+
+.reputation-card .total-reviews {
+  color: #888;
+  font-size: 0.85em;
+  margin: 0 0 15px 0;
+}
+
+.reputation-card .score-bars {
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 15px;
+}
+
+
+/* 評論預覽區 */
+.reviews-preview {
+  margin-top: 15px;
+}
+
+.preview-title {
+  font-size: 0.9em;
+  font-weight: bold;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.review-preview-item {
+  background: var(--pink-light);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.85em;
+}
+
+.review-preview-item .review-stars-small {
+  color: #f1c40f;
+  font-size: 0.9em;
+  margin-bottom: 3px;
+}
+
+.review-preview-item .review-comment {
+  color: #555;
+  font-style: italic;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.progress-bg {
+  background: #f0f0f0;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background: var(--theme);
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.view-all-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: var(--theme);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.3s;
+}
+
+.view-all-btn:hover {
+  background-color: #ff7b9d;
+}
   h1 { color: var(--theme); margin-top: 0; }
   h2, h3 { color: var(--theme); }
   .project-meta { background-color: #fff6f8; border: 1px solid #f2c7d1; border-radius: 10px; padding: 20px; margin-top: 10px; }
@@ -49,7 +238,8 @@
   <a href="{% if user.user_type.strip() == 'contractor' %}/contractor/dashboard{% else %}/client/dashboard{% endif %}">返回儀表板</a>
 </header>
 
-<main>
+<div class="page-container">
+  <div class="main-content">
   <h1>{{ project.title }}</h1>
 
   <div class="project-meta">
@@ -219,8 +409,89 @@
       ⬅ 返回上一頁
     </button>
   </div>
+  </div>
+  <!-- 右側評價卡片 -->
+    <div class="reputation-card">
+    <div class="profile-header">
+      <img class="avatar" 
+           src="https://ui-avatars.com/api/?name={{ project.client_name }}&background=random&size=120" 
+           alt="Avatar">
+      
+      <div class="profile-info">
+        <div class="client-name">{{ project.client_name.strip() }}</div>
+        <div class="role-badge">💼 委託人</div>
+      </div>
+    </div>
+    <div class="score-summary">
+      <div class="big-score">{{ client_stats.avg_score }}</div>
+      <div class="star-display">★★★★★</div>
+      <div class="total-reviews">({{ client_stats.total_count }} 則評價)</div>
+    </div>
+    <div class="score-bars">
+      <div class="score-item">
+        <div class="score-label">
+          <span>需求合理性</span>
+          <span>{{ client_stats.avg_score_1 }}</span>
+        </div>
+        {% set width_1 = (client_stats.avg_score_1 | float * 20) | round(1) %}
+        <div class="progress-bg">
+          <div class="progress-fill" style="width: {{ width_1 }}%;"></div>
+        </div>
+      </div>
+      
+      <div class="score-item">
+        <div class="score-label">
+          <span>驗收難度</span>
+          <span>{{ client_stats.avg_score_2 }}</span>
+        </div>
+        {% set width_2 = (client_stats.avg_score_2 | float * 20) | round(1) %}
+        <div class="progress-bg">
+          <div class="progress-fill" style="width: {{ width_2 }}%;"></div>
+        </div>
+      </div>
+      
+      <div class="score-item">
+        <div class="score-label">
+          <span>合作態度</span>
+          <span>{{ client_stats.avg_score_3 }}</span>
+        </div>
+        {% set width_3 = (client_stats.avg_score_3 | float * 20) | round(1) %}
+        <div class="progress-bg">
+          <div class="progress-fill" style="width: {{ width_3 }}%;"></div>
+        </div>
+      </div>
+    </div>
 
-</main>
+    <!-- 🆕 評論預覽 -->
+    <div class="reviews-preview">
+      <div class="preview-title">📝 最近評價</div>
+      
+      {% if client_reviews %}
+        {% for review in client_reviews[:3] %}
+        <div class="review-preview-item">
+          {% set s1 = review.score_1|default(0)|int %}
+          {% set s2 = review.score_2|default(0)|int %}
+          {% set s3 = review.score_3|default(0)|int %}
+          {% set avg = ((s1 + s2 + s3) / 3) | round(1) %}
+          
+          <div class="review-stars-small">★ {{ avg }}</div>
+          <div class="review-comment">
+            "{{ review.comment if review.comment else '合作愉快' }}"
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="text-align: center; color: #999; padding: 20px; font-size: 0.85em;">
+          尚無評價紀錄
+        </div>
+      {% endif %}
+    </div>
+    
+    <a href="/profile/{{ project.client_id }}" target="_blank">
+      <button class="view-all-btn">查看完整評價 →</button>
+    </a>
+  </div>
+</div>
 
 </body>
 </html>

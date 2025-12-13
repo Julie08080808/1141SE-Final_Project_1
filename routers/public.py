@@ -59,6 +59,10 @@ async def get_project_details(
         )
         has_bid = (my_bid is not None)       # True 表示已投標
 
+    client_id = project['client_id']
+    client_stats = await crud.get_user_reputation_stats(conn, client_id)
+    client_reviews = await crud.get_user_received_reviews_public(conn, client_id)
+
     # 4️⃣ 回傳模板，顯示專案詳情頁面
     return templates.TemplateResponse(
         "project_detail.html",               # 對應的 HTML 模板
@@ -69,6 +73,8 @@ async def get_project_details(
             "deliverables": deliverables,    # 專案交付檔案列表
             "my_bid": my_bid,                # 該接案人投標內容（若有）
             "has_bid": has_bid,              # 是否已投標的布林值
+            "client_stats": client_stats,
+            "client_reviews": client_reviews
         },
     )
 
@@ -136,3 +142,31 @@ async def get_history_page(
             "projects": projects,            # 歷史專案清單
         },
     )
+
+
+# 👤 路由: 查看使用者個人公開主頁
+@router.get("/profile/{target_user_id}", response_class=HTMLResponse)
+async def view_user_profile(
+    target_user_id: int,
+    request: Request,
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 1. 取得該使用者基本資料 (名字、角色)
+    target_user = await crud.get_user_by_id(conn, target_user_id)
+    if not target_user:
+        return HTMLResponse("User not found", status_code=404)
+
+    # 2. 取得統計分數 (3維度)
+    stats = await crud.get_user_reputation_stats(conn, target_user_id)
+    
+    # 3. 取得詳細評論列表
+    reviews = await crud.get_user_received_reviews_public(conn, target_user_id)
+
+    return templates.TemplateResponse("user_profile.html", {
+        "request": request,
+        "user": user,           # 當前登入者 (為了顯示 Header)
+        "target_user": target_user, # 被查看的人
+        "stats": stats,
+        "reviews": reviews
+    })

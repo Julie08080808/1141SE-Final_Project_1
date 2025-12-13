@@ -171,7 +171,14 @@ async def create_bid(conn: Connection, project_id: int, contractor_id: int, pric
 # 取得專案所有投標紀錄（含接案人名稱）
 async def get_bids_for_project(conn: Connection, project_id: int):
     sql = """
-        SELECT b.*, u.name as contractor_name
+        SELECT b.*, u.name as contractor_name,
+        b.contractor_id,
+            COALESCE(
+                (SELECT AVG((score_1 + score_2 + score_3) / 3.0)
+                 FROM reviews
+                 WHERE reviewee_id = b.contractor_id
+                ), 0
+            ) as contractor_avg_score
         FROM bids b
         JOIN users u ON b.contractor_id = u.uid
         WHERE b.project_id = %s
@@ -550,4 +557,51 @@ async def get_my_given_reviews(conn: Connection, user_id: int):
         # 直接回傳！它已經自動變成字典列表了，不用自己轉
         return await cur.fetchall()
     
+# 1. 📊 新增：取得某使用者的「評價統計」 (平均分、總評數)
+async def get_user_reputation_stats(conn: Connection, user_id: int):
+    """
+    回傳：總平均、總評數、以及三個維度的各自平均分
+    """
+    sql = """
+        SELECT 
+            COUNT(*) as total_count,
+            AVG((score_1 + score_2 + score_3) / 3.0) as avg_score,
+            AVG(score_1) as avg_score_1, -- 維度1平均
+            AVG(score_2) as avg_score_2, -- 維度2平均
+            AVG(score_3) as avg_score_3  -- 維度3平均
+        FROM reviews
+        WHERE reviewee_id = %s
+    """
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(sql, (user_id,))
+        stats = await cur.fetchone()
+        
+        # 數值處理：None 轉為 0.0，否則取小數點第 1 位
+        keys = ['avg_score', 'avg_score_1', 'avg_score_2', 'avg_score_3']
+        for k in keys:
+            if stats[k] is None:
+                stats[k] = 0.0
+            else:
+                stats[k] = round(stats[k], 1)
+            
+        return stats
 
+# 2. 📝 新增：取得某使用者的「詳細評價列表」 (顯示給對方看)
+async def get_user_received_reviews_public(conn: Connection, user_id: int):
+    """
+    取得該使用者收到的所有評價 (含評價者名稱、專案標題)
+    """
+    sql = """
+        SELECT 
+            r.score_1, r.score_2, r.score_3, r.comment, r.created_at,
+            p.title as project_title,
+            u.name as reviewer_name
+        FROM reviews r
+        JOIN projects p ON r.project_id = p.id
+        JOIN users u ON r.reviewer_id = u.uid
+        WHERE r.reviewee_id = %s
+        ORDER BY r.created_at DESC
+    """
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(sql, (user_id,))
+        return await cur.fetchall()

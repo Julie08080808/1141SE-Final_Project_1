@@ -398,3 +398,20 @@ async def submit_client_review(
     )
 
     return RedirectResponse(url="/client/dashboard", status_code=303)
+
+
+# 🆕 API: 取得某位使用者的評價資料 (供前端 Modal 使用)
+@router.get("/api/user/{user_id}/reviews")
+async def get_user_reviews_api(
+    user_id: int, 
+    conn: Connection = Depends(getDB)
+):
+    # 1. 取得統計
+    stats = await crud.get_user_reputation_stats(conn, user_id)
+    # 2. 取得詳細列表
+    reviews = await crud.get_user_received_reviews_public(conn, user_id)
+    
+    return {
+        "stats": stats,
+        "reviews": reviews
+    }
