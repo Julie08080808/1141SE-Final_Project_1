@@ -7,7 +7,7 @@ from psycopg.rows import dict_row   #讓查詢結果變成「字典格式」，�
 # db.py
 defaultDB="114SE1"
 dbUser="postgres"
-dbPassword="jay940101"
+dbPassword="jay940101"# 延伸三測試
 dbHost="localhost"
 dbPort=5432   # PostgreSQL 預設埠號
 
