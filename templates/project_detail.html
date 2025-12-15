@@ -10,42 +10,47 @@
     --theme: #FF5E7E;
     --gray: #f4f4f4;
     --text: #333;
+    /* 新增 AI 摘要配色 */
+    --ai-bg: #e6ffed;
+    --ai-border: #edd161;
+    --ai-text: #edd161;
   }
   body { font-family: "Noto Sans TC", sans-serif; background-color: var(--pink-light); color: var(--text); margin: 0; padding: 0; }
   header { background-color: var(--pink); color: white; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
   header a { color: white; text-decoration: none; font-weight: bold; }
   header a:hover { text-decoration: underline; }
-  /* 新增：外層容器 */
+  
+/* 外層容器 */
 .page-container {
   max-width: 1400px;
   margin: 40px auto;
   padding: 0 20px;
-  display: flex;          /* 👈 使用 Flexbox */
-  gap: 30px;              /* 👈 左右間距 */
+  display: flex;          
+  gap: 30px;              
   align-items: flex-start;
 }
 
 /* 左側主內容區 */
 .main-content {
-  flex: 1;                /* 👈 佔據剩餘空間 */
+  flex: 1;                
   min-width: 0;
   background-color: white;
   border-radius: 15px;
-  padding: 40px 50px;     /* 👈 內距增加 */
+  padding: 40px 50px;     
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
-/* 新增：右側評價卡片 */
+/* 右側評價卡片 */
 .reputation-card {
-  flex: 0 0 320px;        /* 👈 固定寬度 320px */
+  flex: 0 0 320px;        
   background-color: white;
   border-radius: 15px;
   padding: 25px;
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-  position: sticky;       /* 👈 固定定位 */
+  position: sticky;       
   top: 20px;
   text-align: left;
-  max-height: calc(100vh - 60px); /* 👈 新增：限制高度 */
+  max-height: calc(100vh - 60px); 
   overflow-y: auto;
 }
 
@@ -58,14 +63,11 @@
   font-size: 0.75em;
 }
 
-/* 👈 新增：隱藏滾動條 */
 .reputation-card::-webkit-scrollbar {
   width: 0;
   display: none;
 }
 
-
-/* 🆕 頭像和基本資訊區域 - 橫向排列 */
   .profile-header {
     display: flex;
     align-items: center;
@@ -83,7 +85,6 @@
     flex-shrink: 0;
   }
 
-  /* 🆕 右側資訊區 */
   .profile-info {
     flex: 1;
   }
@@ -95,7 +96,6 @@
     margin: 0 0 5px 0;
   }
 
-/* 評分條目區 */
 .score-item {
   margin-bottom: 12px;
 }
@@ -108,7 +108,6 @@
   color: #666;
 }
 
-/* 評分摘要區 */
 .score-summary {
   margin-bottom: 15px;
 }
@@ -139,8 +138,6 @@
   margin-bottom: 15px;
 }
 
-
-/* 評論預覽區 */
 .reviews-preview {
   margin-top: 15px;
 }
@@ -229,6 +226,39 @@
   .deliverables-list small { color: #777; }
   .deliverables-list p { margin-left: 10px; font-style: italic; color: #555; margin-top: 5px; margin-bottom: 5px; }
   .warning-text { color: #666; font-size: 14px; margin-top: 10px; padding: 10px; background-color: #fff9e6; border-left: 3px solid #ffc107; border-radius: 5px; }
+
+  /* 🎯 [新增] AI 摘要區塊樣式 */
+  .ai-summary-box {
+    background-color: var(--ai-bg); 
+    border-left: 5px solid var(--ai-border); 
+    padding: 20px 25px; 
+    margin-top: 25px; 
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .ai-summary-box h3 {
+    color: var(--ai-text);
+    margin-top: 0;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    font-size: 1.2em;
+  }
+  .ai-content {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.7;
+    white-space: pre-wrap; /* 保留換行 */
+  }
+  .ai-disclaimer {
+    display: block;
+    margin-top: 15px;
+    color: #666;
+    font-size: 0.85em;
+    font-style: italic;
+    border-top: 1px solid #ddeeff;
+    padding-top: 10px;
+  }
 </style>
 </head>
 <body>
@@ -261,6 +291,14 @@
       📎 點此下載附件
     </a>
   </p>
+
+  {% if project.ai_summary %}
+  <div class="ai-summary-box">
+      <h3>🤖 AI 附件架構摘要</h3>
+      <div class="ai-content">{{ project.ai_summary | safe }}</div>
+      <small class="ai-disclaimer">🎯此摘要由 Gemini AI 自動生成，僅供快速參考，詳細規格請務必下載附件查閱。</small>
+  </div>
+  {% endif %}
   {% endif %}
   
   <hr>
@@ -432,8 +470,7 @@
     </button>
   </div>
   </div>
-  <!-- 右側評價卡片 -->
-    <div class="reputation-card">
+  <div class="reputation-card">
     <div class="profile-header">
       <img class="avatar" 
            src="https://ui-avatars.com/api/?name={{ project.client_name }}&background=random&size=120" 
@@ -484,7 +521,6 @@
       </div>
     </div>
 
-    <!-- 🆕 評論預覽 -->
     <div class="reviews-preview">
       <div class="preview-title">📝 最近評價</div>
       
@@ -516,7 +552,7 @@
 </div>
 
 <script>
-    // 🎯 [新增] 檔案檢查函式，用於 onchange 事件 (即時回饋)
+    // 檔案檢查函式，用於 onchange 事件 (即時回饋)
     function checkFileTypeAndShowWarning() {
         const fileInput = document.getElementById('proposal_file');
         const warningArea = document.getElementById('file-warning-area');
@@ -536,7 +572,7 @@
         }
     }
 
-    // 🎯 [修改] 表單提交時的檢查 (onsubmit) - 阻止非 PDF 檔案提交，並在彈窗內提供跳轉選項
+    // 表單提交時的檢查 (onsubmit)
     function checkFileExtension(event) {
         const fileInput = document.getElementById('proposal_file');
         
@@ -551,7 +587,7 @@
         if (fileExtension !== 'pdf') {
             event.preventDefault(); // 阻止表單提交
             
-            // 彈窗詢問用戶是否確定跳轉轉檔網站 (實現您要求的「8000說」彈窗內提供跳轉)
+            // 彈窗詢問用戶是否確定跳轉轉檔網站
             const confirmJump = confirm(
                 '❌ 提交失敗！計畫書必須為 PDF 格式。\n\n' +
                 '請問要跳轉到線上轉檔網站嗎？\n' +
@@ -563,10 +599,10 @@
                 window.open('https://smallpdf.com/zh-TW/pdf-converter', '_blank'); 
             }
 
-            return false; // 始終返回 false，阻止非 PDF 檔案的提交
+            return false; 
         }
         
-        return true; // 是 PDF 檔案，允許提交
+        return true; 
     }
 
     document.addEventListener('DOMContentLoaded', () => {

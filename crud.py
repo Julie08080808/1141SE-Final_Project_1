@@ -59,6 +59,7 @@ async def create_project(
         return new_project
 
 # 更新委託人專案內容
+
 async def update_project(
     conn: Connection, 
     project_id: int, 
@@ -67,20 +68,28 @@ async def update_project(
     description: str, 
     budget: float, 
     deadline: date,
-    attachment_url: str | None = None
+    attachment_url: str | None = None,
+    ai_summary: str | None = None  # 🎯 [新增] 接收 AI 摘要
 ):
+    # 修改 SQL，多更新一個 ai_summary 欄位
     sql = """
         UPDATE projects
-        SET title = %s, description = %s, budget = %s, deadline = %s, attachment_url = %s
+        SET title = %s, description = %s, budget = %s, deadline = %s, 
+            attachment_url = COALESCE(%s, attachment_url), -- 這裡用 COALESCE 防止覆蓋成 NULL (選用)
+            ai_summary = COALESCE(%s, ai_summary)          -- 🎯 [新增] 更新摘要
         WHERE id = %s 
           AND client_id = %s 
           AND status = 'open'
     """
     async with conn.cursor() as cur:
-        await cur.execute(sql, (title, description, budget, deadline, attachment_url, project_id, client_id))
+        # 傳入參數也要補上 ai_summary
+        await cur.execute(sql, (
+            title, description, budget, deadline, 
+            attachment_url, ai_summary, 
+            project_id, client_id
+        ))
         await conn.commit()
         return cur.rowcount
-
 
 # 委託人：查看自己所有專案（含得標者與成交價）
 async def get_projects_by_client_id(conn: Connection, client_id: int):
