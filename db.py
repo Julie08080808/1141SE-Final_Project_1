@@ -5,9 +5,10 @@
 from psycopg_pool import AsyncConnectionPool #使用connection pool  非同步連線池（Async = 不阻塞）
 from psycopg.rows import dict_row   #讓查詢結果變成「字典格式」，方便以欄位名稱取值（而不是用索引位置）。
 # db.py
-defaultDB="114SE1"
+
+defaultDB="main" # 114SE1.new
 dbUser="postgres"
-dbPassword="jay940101"# 延伸三測試
+dbPassword="Jcmoon030"# 延伸三測試
 dbHost="localhost"
 dbPort=5432   # PostgreSQL 預設埠號
 

@@ -10,12 +10,198 @@
     --theme: #FF5E7E;
     --gray: #f4f4f4;
     --text: #333;
+    /* 新增 AI 摘要配色 */
+    --ai-bg: #e6ffed;
+    --ai-border: #edd161;
+    --ai-text: #edd161;
   }
   body { font-family: "Noto Sans TC", sans-serif; background-color: var(--pink-light); color: var(--text); margin: 0; padding: 0; }
   header { background-color: var(--pink); color: white; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
   header a { color: white; text-decoration: none; font-weight: bold; }
   header a:hover { text-decoration: underline; }
-  main { max-width: 900px; margin: 40px auto; background-color: white; border-radius: 15px; padding: 30px 40px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+  
+/* 外層容器 */
+.page-container {
+  max-width: 1400px;
+  margin: 40px auto;
+  padding: 0 20px;
+  display: flex;          
+  gap: 30px;              
+  align-items: flex-start;
+}
+
+/* 左側主內容區 */
+.main-content {
+  flex: 1;                
+  min-width: 0;
+  background-color: white;
+  border-radius: 15px;
+  padding: 40px 50px;     
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* 右側評價卡片 */
+.reputation-card {
+  flex: 0 0 320px;        
+  background-color: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  position: sticky;       
+  top: 20px;
+  text-align: left;
+  max-height: calc(100vh - 60px); 
+  overflow-y: auto;
+}
+
+.reputation-card .role-badge {
+  display: inline-block;
+  background-color: var(--pink);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75em;
+}
+
+.reputation-card::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #eee;
+  }
+
+  .reputation-card .avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid var(--pink-light);
+    flex-shrink: 0;
+  }
+
+  .profile-info {
+    flex: 1;
+  }
+
+  .client-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--text);
+    margin: 0 0 5px 0;
+  }
+
+.score-item {
+  margin-bottom: 12px;
+}
+
+.score-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85em;
+  margin-bottom: 5px;
+  color: #666;
+}
+
+.score-summary {
+  margin-bottom: 15px;
+}
+
+.reputation-card .big-score {
+  font-size: 2em;
+  font-weight: bold;
+  color: var(--theme);
+  margin: 0;
+  line-height: 1;
+}
+
+.reputation-card .star-display {
+  color: #f1c40f;
+  font-size: 1em;
+  margin: 5px 0;
+}
+
+.reputation-card .total-reviews {
+  color: #888;
+  font-size: 0.85em;
+  margin: 0 0 15px 0;
+}
+
+.reputation-card .score-bars {
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 15px;
+}
+
+.reviews-preview {
+  margin-top: 15px;
+}
+
+.preview-title {
+  font-size: 0.9em;
+  font-weight: bold;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.review-preview-item {
+  background: var(--pink-light);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.85em;
+}
+
+.review-preview-item .review-stars-small {
+  color: #f1c40f;
+  font-size: 0.9em;
+  margin-bottom: 3px;
+}
+
+.review-preview-item .review-comment {
+  color: #555;
+  font-style: italic;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.progress-bg {
+  background: #f0f0f0;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background: var(--theme);
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.view-all-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: var(--theme);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.3s;
+}
+
+.view-all-btn:hover {
+  background-color: #ff7b9d;
+}
   h1 { color: var(--theme); margin-top: 0; }
   h2, h3 { color: var(--theme); }
   .project-meta { background-color: #fff6f8; border: 1px solid #f2c7d1; border-radius: 10px; padding: 20px; margin-top: 10px; }
@@ -40,6 +226,39 @@
   .deliverables-list small { color: #777; }
   .deliverables-list p { margin-left: 10px; font-style: italic; color: #555; margin-top: 5px; margin-bottom: 5px; }
   .warning-text { color: #666; font-size: 14px; margin-top: 10px; padding: 10px; background-color: #fff9e6; border-left: 3px solid #ffc107; border-radius: 5px; }
+
+  /* 🎯 [新增] AI 摘要區塊樣式 */
+  .ai-summary-box {
+    background-color: var(--ai-bg); 
+    border-left: 5px solid var(--ai-border); 
+    padding: 20px 25px; 
+    margin-top: 25px; 
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .ai-summary-box h3 {
+    color: var(--ai-text);
+    margin-top: 0;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    font-size: 1.2em;
+  }
+  .ai-content {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.7;
+    white-space: pre-wrap; /* 保留換行 */
+  }
+  .ai-disclaimer {
+    display: block;
+    margin-top: 15px;
+    color: #666;
+    font-size: 0.85em;
+    font-style: italic;
+    border-top: 1px solid #ddeeff;
+    padding-top: 10px;
+  }
 </style>
 </head>
 <body>
@@ -49,7 +268,8 @@
   <a href="{% if user.user_type.strip() == 'contractor' %}/contractor/dashboard{% else %}/client/dashboard{% endif %}">返回儀表板</a>
 </header>
 
-<main>
+<div class="page-container">
+  <div class="main-content">
   <h1>{{ project.title }}</h1>
 
   <div class="project-meta">
@@ -71,23 +291,25 @@
       📎 點此下載附件
     </a>
   </p>
+
+  {% if project.ai_summary %}
+  <div class="ai-summary-box">
+      <h3>🤖 AI 附件架構摘要</h3>
+      <div class="ai-content">{{ project.ai_summary | safe }}</div>
+      <small class="ai-disclaimer">🎯此摘要由 Gemini AI 自動生成，僅供快速參考，詳細規格請務必下載附件查閱。</small>
+  </div>
+  {% endif %}
   {% endif %}
   
   <hr>
 
-  <!-- ========================================
-       投標與交付邏輯 (✅ 加入重複投標檢查)
-       ======================================== -->
-
   {% if user.user_type.strip() == 'client' and user.uid == project.client_id %}
-    <!-- 1. 委託人看自己的專案 -->
     <div class="admin-links">
         <h2>📊 專案管理</h2>
         <p>這是你的專案,你可以 <a href="/client/project/{{ project.id }}/manage">點此管理投標與驗收</a>。</p>
     </div>
   
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() == 'in_progress' and user.uid == project.accepted_contractor_id %}
-    <!-- 2. 接案人(得標者)交付檔案 -->
     <div class="bid-form">
       <h2>🏆 交付你的成果</h2>
       
@@ -125,7 +347,6 @@
     </div>
   
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() not in ['open', 'in_progress'] and user.uid == project.accepted_contractor_id %}
-    <!-- 3. 接案人(得標者)查看已結案專案 -->
     <div class="bid-form">
       <h2>✅ 你的交付紀錄</h2>
       <p>你是這個專案的得標者。以下是你的交付紀錄:</p>
@@ -149,10 +370,7 @@
     </div>
 
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() == 'open' %}
-    <!-- 4. 接案人投標區域 (✅ 重點修改:檢查 has_bid 或 my_bid) -->
-    
     {% if has_bid or my_bid %}
-      <!-- ✅ 已經投過標了 -->
       <div class="already-bid">
         <h2>✅ 你已投標此專案</h2>
         <p>你已經對此專案提交過報價,<strong>無法重複投標</strong>。</p>
@@ -161,6 +379,16 @@
         <div class="info-box">
           <p><strong>你的報價:</strong> ${{ "%.2f"|format(my_bid['price']) }}</p>
           <p><strong>提案說明:</strong> {{ my_bid['message'] or '(無)' }}</p>
+          
+          {% if my_bid.proposal_url %}
+          <p>
+            <strong>計畫書:</strong> 
+            <a href="{{ my_bid.proposal_url }}" target="_blank">
+              📄 點此檢視已上傳的計劃書 (PDF)
+            </a>
+          </p>
+          {% endif %}
+
           <p><strong>投標狀態:</strong> 
             {% if my_bid['status'] == 'pending' %}
               <span style="color: #ff9800;">⏳ 等待委託人審核</span>
@@ -181,18 +409,41 @@
       </div>
       
     {% else %}
-      <!-- ✅ 尚未投標,顯示投標表單 -->
       <div class="bid-form">
         <h2>💰 提交我的報價</h2>
-        <form action="/project/{{ project.id }}/bid" method="post">
+        <form action="/project/{{ project.id }}/bid" method="post" enctype="multipart/form-data" onsubmit="return checkFileExtension(event)"> 
           <div>
             <label for="price">我的報價 ($):</label>
             <input type="number" id="price" name="price" step="0.01" min="0" placeholder="例如: 3000.00" required>
           </div>
+
+          <div style="margin-top: 15px;">
+            <label for="proposal_file">上傳計畫書 (限PDF檔):</label>
+            <input type="file" id="proposal_file" name="proposal_file" accept=".pdf" required onchange="checkFileTypeAndShowWarning()">
+            
+            <div id="file-warning-area" style="display: none; margin-top: 10px; padding: 15px; border-radius: 8px; background-color: #fff6f6; border: 1px solid #ffcccc; color: #cc0000; line-height: 1.6;">
+                <p style="margin: 0 0 10px; font-weight: bold;">
+                    ⚠️ 格式警告：您選擇的檔案 <span id="selected-filename" style="font-style: italic; color: #990000;"></span> 不是 PDF 格式。
+                </p>
+                <p style="margin: 0;">
+                    我們要求 PDF 格式，建議您先轉換檔案：
+                    <a href="https://smallpdf.com/zh-TW/pdf-converter" target="_blank"
+                       style="display: inline-block; background-color: #ff9800; color: white; border-radius: 5px; padding: 8px 12px; font-size: 14px; margin-left: 10px; text-decoration: none; font-weight: bold; border: none; cursor: pointer;">
+                        🛠️ 立即前往轉檔 (開啟新分頁)
+                    </a>
+                </p>
+            </div>
+
+            <div class="warning-text">
+              ⚠️ 重要：上傳詳細的計劃書對委託人是很重要der!
+            </div>
+          </div>
+          
           <div style="margin-top: 15px;">
             <label for="message">提案說明 (選填):</label>
             <textarea id="message" name="message" rows="5" placeholder="請簡短說明你的服務內容、優勢、預計交付時間等..."></textarea>
           </div>
+          
           <button type="submit" style="margin-top: 15px;">提交報價</button>
         </form>
         
@@ -203,7 +454,6 @@
     {% endif %}
   
   {% elif project.status.strip() != 'open' %}
-    <!-- 5. 專案已關閉 -->
     <div class="info-box">
       <p><strong>此專案已結案或正在進行中,無法投標。</strong></p>
     </div>
@@ -219,8 +469,153 @@
       ⬅ 返回上一頁
     </button>
   </div>
+  </div>
+  <div class="reputation-card">
+    <div class="profile-header">
+      <img class="avatar" 
+           src="https://ui-avatars.com/api/?name={{ project.client_name }}&background=random&size=120" 
+           alt="Avatar">
+      
+      <div class="profile-info">
+        <div class="client-name">{{ project.client_name.strip() }}</div>
+        <div class="role-badge">💼 委託人</div>
+      </div>
+    </div>
+    <div class="score-summary">
+      <div class="big-score">{{ client_stats.avg_score }}</div>
+      <div class="star-display">★★★★★</div>
+      <div class="total-reviews">({{ client_stats.total_count }} 則評價)</div>
+    </div>
+    <div class="score-bars">
+      <div class="score-item">
+        <div class="score-label">
+          <span>需求合理性</span>
+          <span>{{ client_stats.avg_score_1 }}</span>
+        </div>
+        {% set width_1 = (client_stats.avg_score_1 | float * 20) | round(1) %}
+        <div class="progress-bg">
+          <div class="progress-fill" style="width: {{ width_1 }}%;"></div>
+        </div>
+      </div>
+      
+      <div class="score-item">
+        <div class="score-label">
+          <span>驗收難度</span>
+          <span>{{ client_stats.avg_score_2 }}</span>
+        </div>
+        {% set width_2 = (client_stats.avg_score_2 | float * 20) | round(1) %}
+        <div class="progress-bg">
+          <div class="progress-fill" style="width: {{ width_2 }}%;"></div>
+        </div>
+      </div>
+      
+      <div class="score-item">
+        <div class="score-label">
+          <span>合作態度</span>
+          <span>{{ client_stats.avg_score_3 }}</span>
+        </div>
+        {% set width_3 = (client_stats.avg_score_3 | float * 20) | round(1) %}
+        <div class="progress-bg">
+          <div class="progress-fill" style="width: {{ width_3 }}%;"></div>
+        </div>
+      </div>
+    </div>
 
-</main>
+    <div class="reviews-preview">
+      <div class="preview-title">📝 最近評價</div>
+      
+      {% if client_reviews %}
+        {% for review in client_reviews[:3] %}
+        <div class="review-preview-item">
+          {% set s1 = review.score_1|default(0)|int %}
+          {% set s2 = review.score_2|default(0)|int %}
+          {% set s3 = review.score_3|default(0)|int %}
+          {% set avg = ((s1 + s2 + s3) / 3) | round(1) %}
+          
+          <div class="review-stars-small">★ {{ avg }}</div>
+          <div class="review-comment">
+            "{{ review.comment if review.comment else '合作愉快' }}"
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="text-align: center; color: #999; padding: 20px; font-size: 0.85em;">
+          尚無評價紀錄
+        </div>
+      {% endif %}
+    </div>
+    
+    <a href="/profile/{{ project.client_id }}" target="_blank">
+      <button class="view-all-btn">查看完整評價 →</button>
+    </a>
+  </div>
+</div>
+
+<script>
+    // 檔案檢查函式，用於 onchange 事件 (即時回饋)
+    function checkFileTypeAndShowWarning() {
+        const fileInput = document.getElementById('proposal_file');
+        const warningArea = document.getElementById('file-warning-area');
+        const filenameSpan = document.getElementById('selected-filename');
+
+        warningArea.style.display = 'none'; // 預設隱藏警告區
+
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+            
+            if (fileExtension !== 'pdf') {
+                filenameSpan.textContent = `"${fileName}"`;
+                warningArea.style.display = 'block'; // 顯示警告
+            }
+        }
+    }
+
+    // 表單提交時的檢查 (onsubmit)
+    function checkFileExtension(event) {
+        const fileInput = document.getElementById('proposal_file');
+        
+        // 檢查檔案是否已選擇
+        if (fileInput.files.length === 0) {
+            return true; 
+        }
+        
+        const file = fileInput.files[0];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+
+        if (fileExtension !== 'pdf') {
+            event.preventDefault(); // 阻止表單提交
+            
+            // 彈窗詢問用戶是否確定跳轉轉檔網站
+            const confirmJump = confirm(
+                '❌ 提交失敗！計畫書必須為 PDF 格式。\n\n' +
+                '請問要跳轉到線上轉檔網站嗎？\n' +
+                '(點擊「確定」前往轉檔；點擊「取消」回到表單)'
+            );
+            
+            if (confirmJump) {
+                // 如果用戶點擊「確定」，則跳轉到轉檔網站
+                window.open('https://smallpdf.com/zh-TW/pdf-converter', '_blank'); 
+            }
+
+            return false; 
+        }
+        
+        return true; 
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // 檢查是否有錯誤訊息
+        const errorDetail = '{{ request.query_params.get("error_detail", "") }}';
+        
+        if (errorDetail) {
+             // 處理錯誤：只顯示彈窗
+             const decodedError = decodeURIComponent(errorDetail.replace(/\+/g, ' '));
+             alert(`操作失敗：${decodedError}`);
+        }
+    });
+</script>
 
 </body>
 </html>

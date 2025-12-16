@@ -4,10 +4,9 @@
 # - 瀏覽所有可投標專案
 # - 查看自己的投標紀錄
 # - 更新報價
-# - 上傳專案交付檔案
+# - 上傳專案交付檔案 (已加入防覆蓋機制)
 # --------------------------------------------------------
 
-# routers/contractor.py 
 from fastapi import APIRouter, Depends, Form, Request, HTTPException, status, File, UploadFile
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -18,14 +17,17 @@ import shutil
 import os
 from db import getDB
 from auth import get_current_user
-
+from datetime import datetime, timedelta
+ # 🎯 [新增] 用於產生時間戳記
+from pathlib import Path       # 🎯 [新增] 用於路徑處理
+import re                      # 🎯 [新增] 用於清理檔名
 
 # --------------------------------------------------------
 # 🔧 基本設定區段
 # --------------------------------------------------------
 
-# 統一定義上傳資料夾
-UPLOAD_DIR = "uploads"    # 上傳資料夾統一放在 uploads 目錄下
+# 統一定義上傳資料夾 (使用 Path 物件較為穩健)
+UPLOAD_DIR = Path("uploads")
 
 # 建立接案人路由物件
 router = APIRouter(
@@ -40,83 +42,88 @@ templates = Jinja2Templates(directory="templates")
 # --------------------------------------------------------
 # 🏠 路由 1: 接案人儀表板
 # --------------------------------------------------------
-# 路由 1: "接案人儀表板" (GET) /contractor/dashboard
 @router.get("/dashboard", response_class=HTMLResponse)
 async def get_contractor_dashboard(
     request: Request, 
-    conn: Connection = Depends(getDB),      # 建立資料庫連線
-    user: dict = Depends(get_current_user)  # 取得目前登入使用者資訊
+    conn: Connection = Depends(getDB),      
+    user: dict = Depends(get_current_user)  
 ):
-     # 若登入者不是接案人，導回委託人儀表板
     if user["user_type"].strip() != 'contractor':
         return RedirectResponse(url="/client/dashboard", status_code=status.HTTP_302_FOUND)
 
-    # ✅ 使用 CRUD 函式抓出所有公開專案 + 投標數
-    # 這個函數會返回：client_name (委託人) 和 bid_count (競標人數)
     open_projects = await crud.get_all_open_projects_with_bid_count(conn)
 
-    # 將資料傳進模板產生 HTML 頁面
     return templates.TemplateResponse("contractor_dashboard.html", {
         "request": request,
-        "user_name": user["name"].strip(),  # 顯示登入者名稱
-        "projects": open_projects           # 所有可投標專案
+        "user_name": user["name"].strip(),
+        "projects": open_projects
     })
-
 
 
 # --------------------------------------------------------
 # 📋 路由 2: 查看我的投標紀錄
 # --------------------------------------------------------
-# 路由 2: "顯示我所有的投標" (GET) /contractor/my-bids
 @router.get("/my-bids", response_class=HTMLResponse)
 async def get_my_bids(
     request: Request,
     conn: Connection = Depends(getDB),
     user: dict = Depends(get_current_user)
 ):
-    # 從資料庫撈取此接案人所有投標紀錄
+    # 這裡維持傳送 'bids'，因為您的 my_bids.html 會自己使用 Jinja2 過濾器來分類
     my_bids = await crud.get_bids_by_contractor_id(conn, user["uid"])
+
+    # ✅ 【關鍵修正】為每個已完成的專案檢查是否已評價
+    for bid in my_bids:
+        # 只有已完成的專案才需要檢查評價狀態
+        if bid['project_status'].strip() == 'completed':
+            # 檢查是否已經評價過這個專案
+            reviewed = await crud.check_if_reviewed(conn, bid['project_id'], user["uid"])
+            bid['has_reviewed'] = reviewed is not None  # 如果有紀錄就是 True
+        else:
+            bid['has_reviewed'] = False  # 非 completed 狀態不需評價
     
+
+    # 同時撈取此接案人收到的評價紀錄
+    given_reviews = await crud.get_my_given_reviews(conn, user["uid"])
+    
+
     # 回傳模板顯示投標清單
     return templates.TemplateResponse("my_bids.html", {
         "request": request,
         "user_name": user["name"].strip(),
-        "bids": my_bids   # 投標紀錄資料列表
+        "bids": my_bids,   # 投標紀錄資料列表
+        "given_reviews": given_reviews,  # <--- 關鍵：把評價資料傳給網頁
+        "active_tab": "bids"  # 頁面切換用
+
     })
 
 
 # --------------------------------------------------------
 # 💰 路由 3: 更新投標價格
 # --------------------------------------------------------
-# 路由 3: "更新我的投標價格" (POST) /contractor/bid/{bid_id}/update
 @router.post("/bid/{bid_id}/update", response_class=RedirectResponse)
 async def update_bid(
-    bid_id: int,                    # 投標 ID
-    new_price: float = Form(...),   # 從表單中取得新價格
+    bid_id: int,                    
+    new_price: float = Form(...),   
     conn: Connection = Depends(getDB),
     user: dict = Depends(get_current_user)
 ):
-    
-    # 呼叫 CRUD 函式更新該接案人的投標價格
     rows_updated = await crud.update_bid_price(
         conn=conn,
         bid_id=bid_id,
-        contractor_id=user["uid"],       # 確保只能改自己的投標
+        contractor_id=user["uid"],       
         new_price=new_price
     )
     
-    # 若沒有資料被更新（例如專案已結案），丟出錯誤
     if rows_updated == 0:
         raise HTTPException(status_code=403, detail="無法更新此報價 (可能已結案)")
 
-    # 更新成功 → 回到「我的投標」頁面
     return RedirectResponse(url="/contractor/my-bids", status_code=status.HTTP_302_FOUND)
 
 
 # --------------------------------------------------------
 # 📤 路由 4: 顯示上傳交付檔案表單
 # --------------------------------------------------------
-# 路由 4: "顯示上傳檔案的表單" (GET) /contractor/project/{project_id}/deliver
 @router.get("/project/{project_id}/deliver", response_class=HTMLResponse)
 async def deliver_form(
     project_id: int,
@@ -124,15 +131,13 @@ async def deliver_form(
     conn: Connection = Depends(getDB),
     user: dict = Depends(get_current_user)
 ):
-    
-    # 從資料庫取得專案資料
     project = await crud.get_project_by_id(conn, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="專案不存在")
     
-    # ✅ 限定狀態：只有 in_progress（進行中）或 review（被退件）能上傳交付
     project_status = project["status"].strip()
     if project_status not in ['in_progress', 'review']:
+        # 這裡使用 HTMLResponse 返回錯誤訊息，保持您原本的設計
         return HTMLResponse(
             f"<h2>此專案目前狀態為「{project_status}」,無法上傳檔案</h2>"
             f"<p>只有「執行中」或「已退件」的專案可以上傳檔案。</p>"
@@ -140,7 +145,6 @@ async def deliver_form(
             status_code=400
         )
 
-    # 顯示模板 deliver_form.html，讓使用者上傳交付檔案
     return templates.TemplateResponse("deliver_form.html", {
         "request": request,
         "project": project,
@@ -148,25 +152,23 @@ async def deliver_form(
     })
 
 
-
 # --------------------------------------------------------
-# 📦 路由 5: 處理上傳的交付檔案
+# 📦 路由 5: 處理上傳的交付檔案 (🎯 修正檔名覆蓋問題)
 # --------------------------------------------------------
-# 路由 5: "處理檔案上傳 (交付)" (POST)
 @router.post("/project/{project_id}/deliver", response_class=RedirectResponse)
 async def process_deliverable(
-    project_id: int,                     # 專案 ID
-    note: str = Form(""),                # 備註說明文字
-    file: UploadFile = File(...),        # 上傳檔案
+    project_id: int,                     
+    note: str = Form(""),                
+    file: UploadFile = File(...),        
     conn: Connection = Depends(getDB),
     user: dict = Depends(get_current_user)
 ):
-      # ✅ 檢查專案是否存在
+    # 1. 檢查專案是否存在
     project = await crud.get_project_by_id(conn, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="專案不存在")
     
-     # ✅ 檢查專案狀態（必須為進行中或退件狀態）
+    # 2. 檢查專案狀態
     project_status = project["status"].strip()
     if project_status not in ['in_progress', 'review']:
         raise HTTPException(
@@ -174,32 +176,46 @@ async def process_deliverable(
             detail=f"專案狀態「{project_status}」無法上傳檔案"
         )
 
-    # 處理檔案儲存
-    file_url = None    # 先預設 file_url 為 None，代表尚未上傳成功
-    #宣告一個變數 file_url，用來儲存檔案的「網址路徑」。
+    # 3. 處理檔案儲存 (加入時間戳記防止覆蓋)
+    file_url = None
 
     if file and file.filename:
-         # 建立專案子資料夾 uploads/project_xx/deliverable/ ， 建立專屬的資料夾給這個專案存檔案。
-        project_folder = os.path.join(UPLOAD_DIR, f"project_{project_id}", "deliverable")
-        os.makedirs(project_folder, exist_ok=True) 
+        # A. 設定資料夾路徑： uploads/project_{id}/deliverable
+        project_folder = UPLOAD_DIR / f"project_{project_id}" / "deliverable"
+        project_folder.mkdir(parents=True, exist_ok=True) # 自動建立資料夾
 
-        # 組出檔案完整路徑
-        file_path = os.path.join(project_folder, file.filename)
+        # B. 處理檔名：接案人帳號 + 原始檔名 + 時間戳記
+        contractor_name = user["name"].strip()
+        safe_username = re.sub(r'[^\w\-]', '', contractor_name) # 清除特殊符號
+        
+        original_filename = Path(file.filename).name
+        file_extension = Path(original_filename).suffix
+        stem = original_filename[:-len(file_extension)] if file_extension else original_filename
+        safe_stem = re.sub(r'[^\w\-]', '_', stem) # 檔名中的特殊符號轉底線
+        
+        # 🎯 [關鍵修改] 加入時間戳記 (YYYYMMDD_HHMMSS)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        final_filename = f"{safe_username}_{safe_stem}_{timestamp}{file_extension}"
+
+        # C. 完整路徑
+        file_path = project_folder / final_filename
         
         try:
-            # 將檔案內容寫入伺服器端 (伺服器內處存一份完整的檔案)
+            # D. 寫入檔案
             with open(file_path, "wb") as buffer:
+                # 使用 copyfileobj 或 await file.read() 均可，這裡配合 UploadFile
                 shutil.copyfileobj(file.file, buffer)
+            
+            # E. 設定資料庫存取的 URL (注意：URL 必須使用正斜線 /)
+            file_url = f"/uploads/project_{project_id}/deliverable/{final_filename}"
+            
         finally:
-            file.file.close()     #關閉檔案物件
-        
-        file_url = f"/uploads/project_{project_id}/deliverable/{file.filename}"
+            file.file.close() # 關閉暫存檔
 
-     # 若 file_url 為 None，代表上傳失敗
     if file_url is None:
         raise HTTPException(status_code=400, detail="檔案上傳失敗")
 
-     # ✅ 在資料庫中建立交付紀錄
+    # 4. 寫入資料庫
     await crud.create_deliverable(
         conn=conn,
         project_id=project_id,
@@ -301,3 +317,57 @@ async def send_message_by_contractor(
         url=f"/contractor/project/{project_id}/thread/{thread_id}", 
         status_code=status.HTTP_302_FOUND
     )
+
+# --------------------------------------------------------
+# 📦 路由 6
+# --------------------------------------------------------
+
+@router.post("/project/{project_id}/review")
+async def submit_review(
+    project_id: int,
+    score_1: int = Form(...), 
+    score_2: int = Form(...), 
+    score_3: int = Form(...), 
+    comment: str = Form(""),
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 1. 抓取專案
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="專案不存在")
+    
+    # 2. 檢查狀態 (只有已完成才能評)
+    if project["status"].strip() != 'completed':
+        raise HTTPException(status_code=400, detail="只有已完成的專案才能評價")
+        
+    client_id = project['client_id']
+
+    # 檢查期限 (結案後7天內)
+    if project['completed_at']:
+        deadline = project['completed_at'] + timedelta(days=7)
+        if datetime.now() > deadline:
+            raise HTTPException(status_code=400, detail="已超過評價期限 (7天)，無法進行評價。")
+    else:
+        # 防呆：如果是 completed 狀態但沒有時間，代表資料異常
+        raise HTTPException(status_code=400, detail="專案結案時間資料異常")
+
+    # 4. 檢查是否重複評價
+    if await crud.check_if_reviewed(conn, project_id, user['uid']):
+        return RedirectResponse(url="/contractor/my-bids", status_code=303)
+
+    # 5. 寫入評價
+    await crud.create_review(
+        conn=conn,
+        project_id=project_id,
+        reviewer_id=user['uid'],           # 我 (接案人)
+        reviewee_id=client_id,             # 他 (委託人)
+        role_type='contractor_to_client',  # 方向：乙方評甲方
+        s1=score_1, 
+        s2=score_2, 
+        s3=score_3,
+        comment=comment
+    )
+
+    # 6. 成功導回
+    return RedirectResponse(url="/contractor/my-bids", status_code=303)

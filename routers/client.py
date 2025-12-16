@@ -1,4 +1,4 @@
-# --- [ routers/client.py (v3.1 含投標數統計版) ] ---
+# --- [ routers/client.py (v3.2 UX優化版：錯誤回填表單) ] ---
 # 📘 功能說明：
 # 委託人（Client）專屬路由，負責：
 # - 儀表板顯示（含專案統計）
@@ -18,6 +18,9 @@ from typing import Optional
 import crud
 import os
 import shutil
+from datetime import datetime, timedelta
+import ai_service  # 🎯 [新增] 導入 AI 服務
+import mimetypes   # 🎯 [新增] 用來判斷檔案類型
 
 # 統一定義上傳資料夾
 UPLOAD_DIR = "uploads" 
@@ -46,8 +49,10 @@ async def get_client_dashboard(
         return RedirectResponse(url="/contractor/dashboard") 
 
     # 使用新的 CRUD 函數，它會自動取得委託人所有專案 + 投標數統計
-    all_projects = await crud.get_projects_by_client_id_with_bid_count(conn, user["uid"]) # 取得委託人的專案，同時統計投標數
+    all_projects = await crud.get_projects_by_client_id_with_bid_count(conn, user["uid"]) 
     
+    given_reviews = await crud.get_my_given_reviews(conn, user["uid"])
+
     # 分類專案
     bidding_projects = []
     pending_projects = []
@@ -71,7 +76,10 @@ async def get_client_dashboard(
         "user_name": user["name"].strip(),
         "bidding_projects": bidding_projects, 
         "pending_projects": pending_projects,
-        "completed_projects": completed_projects
+        "completed_projects": completed_projects,
+        "given_reviews": given_reviews,
+        # 輔助變數 (讓前端知道現在在哪一頁，選填)
+        "active_tab": "projects"
     })
 
 # --------------------------------------------------------
@@ -90,8 +98,8 @@ async def new_project_form(
 # --------------------------------------------------------
 # 📤 路由 3: 處理建立專案的表單資料 (含附件)
 # --------------------------------------------------------
-# 路由 3: 處理建立專案 POST /client/project/new (v3.0)
-@router.post("/project/new", response_class=RedirectResponse)
+# 路由 3: 處理建立專案 POST /client/project/new (v3.2 UX優化)
+@router.post("/project/new", response_class=HTMLResponse) # 注意：這裡回傳型態改為 HTMLResponse 以便渲染錯誤頁面
 async def create_new_project(
     request: Request,
     title: str = Form(...),
@@ -105,6 +113,18 @@ async def create_new_project(
     # 只允許委託人建立專案
     if user["user_type"].strip() != 'client':
         raise HTTPException(status_code=403, detail="Only clients can create projects")
+
+    # 🔥 [UX優化] 截止日期檢查：若日期錯誤，不跳轉，直接回傳原頁面 + 錯誤訊息 + 保留填寫資料
+    if deadline < date.today():
+        return templates.TemplateResponse("project_new.html", {
+            "request": request,
+            "error_message": "截止日期無效：不能選擇過去的日期！",  # 👈 傳給前端顯示
+            # 👇 把使用者剛填的資料傳回去，前端可以用 value="{{ title }}" 接住
+            "title": title,
+            "description": description,
+            "budget": budget,
+            "deadline": deadline 
+        }, status_code=400)
 
     # 先建立專案，取得 project_id
     new_project = await crud.create_project(
@@ -121,10 +141,11 @@ async def create_new_project(
 
     new_project_id = new_project["id"]
 
-    # 處理檔案上傳 ， 若有上傳附件 → 儲存檔案並更新資料庫
+    # 處理檔案上傳
     attachment_url = None
+    ai_result = None  # 🎯 [新增] 用來存 AI 結果的變數
+
     if attachment and attachment.filename:
-        # 建立專屬子資料夾
         project_folder = os.path.join(UPLOAD_DIR, f"project_{new_project_id}", "attachment")
         os.makedirs(project_folder, exist_ok=True) 
 
@@ -133,16 +154,41 @@ async def create_new_project(
         try:
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(attachment.file, buffer)
+            
+            # --- 🤖 這裡開始 AI 介入 (同步版本) ---
+            # 判斷一下是否為 PDF 或純文字 (圖片也可以，Gemini 支援)
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                mime_type = "application/pdf" # 預設
+
+            print(f"🤖 AI 正在分析檔案: {attachment.filename} ...")
+            
+            # 呼叫 ai_service 分析
+            # 如果 ai_service 失敗會回傳 None，這裡就直接接住 None
+            ai_result = await ai_service.analyze_attachment(file_path, mime_type)
+            
+            if ai_result:
+                print("✅ AI 分析完成！")
+            else:
+                print("⚠️ AI 分析未產生結果或失敗 (將不顯示於前台)")
+            # ---------------------------
+
         finally:
             attachment.file.close()
         
         attachment_url = f"/uploads/project_{new_project_id}/attachment/{attachment.filename}"
 
-        # 回頭更新 project，把 URL 補上
+        # 更新資料庫：現在多傳入 ai_summary
         await crud.update_project(
-            conn=conn, project_id=new_project_id, client_id=user["uid"],
-            title=title, description=description, budget=budget, deadline=deadline,
-            attachment_url=attachment_url
+            conn=conn, 
+            project_id=new_project_id, 
+            client_id=user["uid"],
+            title=title, 
+            description=description, 
+            budget=budget, 
+            deadline=deadline,
+            attachment_url=attachment_url,
+            ai_summary=ai_result  # 🎯 [修改] 把結果傳進去 (如果是 None 就會存 NULL)
         )
     
     return RedirectResponse(url="/client/dashboard", status_code=status.HTTP_302_FOUND)
@@ -152,8 +198,6 @@ async def create_new_project(
 # ------------------------------------------------------------
 # 📦 路由 4: 專案管理頁面 (查看報價、選擇接案人、核准交付、退件)
 # ------------------------------------------------------------
-# --- [ 報價 / 結案 / 編輯 管理區 ] ---
-
 # 路由 4: "專案管理總頁" GET /client/project/{project_id}/manage
 @router.get("/project/{project_id}/manage", response_class=HTMLResponse)
 async def get_project_management_page(
@@ -185,7 +229,6 @@ async def get_project_management_page(
 # --------------------------------------------------------
 # ✅ 路由 5: 委託人選擇得標者
 # --------------------------------------------------------
-# 路由 5: "選擇接案人" POST /client/project/{project_id}/select/{bid_id}
 @router.post("/project/{project_id}/select/{bid_id}", response_class=RedirectResponse)
 async def select_bid(
     project_id: int,
@@ -210,7 +253,6 @@ async def select_bid(
 # --------------------------------------------------------
 # ✅ 路由 6: 結案 (通過交付)
 # --------------------------------------------------------
-# 路由 6: "結案 (通過)" POST /client/.../approve
 @router.post("/project/{project_id}/deliverable/{deliverable_id}/approve", response_class=RedirectResponse)
 async def approve_deliverable(
     project_id: int,
@@ -270,7 +312,7 @@ async def edit_project_form(
 # --------------------------------------------------------
 # 🧩 路由 9: 處理編輯專案表單 (含附件更新)
 # --------------------------------------------------------
-@router.post("/project/{project_id}/edit", response_class=RedirectResponse)
+@router.post("/project/{project_id}/edit", response_class=HTMLResponse) # 注意：這裡也改為 HTMLResponse
 async def process_edit_project(
     project_id: int,
     request: Request,
@@ -282,10 +324,26 @@ async def process_edit_project(
     conn: Connection = Depends(getDB),
     user: dict = Depends(get_current_user)
 ):
+    # 🔥 [UX優化] 編輯時的日期檢查
+    if deadline < date.today():
+        # 為了讓前端能正常顯示，我們需要模擬一個 project 物件傳回去
+        # 這樣 HTML 中的 {{ project.title }} 才能讀到資料
+        mock_project = {
+            "id": project_id,
+            "title": title,
+            "description": description,
+            "budget": budget,
+            "deadline": deadline,
+            "attachment_url": None # 暫時不回填檔案路徑，太複雜
+        }
+        return templates.TemplateResponse("project_edit.html", {
+            "request": request,
+            "error_message": "截止日期無效：不能修改為過去的日期！",
+            "project": mock_project # 👈 這裡用 mock_project 騙過前端模板
+        }, status_code=400)
+
     attachment_url = None
-    # ✅ 若有上傳新附件 → 取代舊檔案
     if attachment and attachment.filename:
-        # 儲存到專屬子資料夾
         project_folder = os.path.join(UPLOAD_DIR, f"project_{project_id}", "attachment")
         os.makedirs(project_folder, exist_ok=True) 
 
@@ -299,7 +357,7 @@ async def process_edit_project(
         
         attachment_url = f"/uploads/project_{project_id}/attachment/{attachment.filename}"
     else:
-        # 如果沒有上傳新檔案，就保留舊的
+        # 如果沒有上傳新檔案，嘗試去 DB 撈舊的路徑保留
         project = await crud.get_project_by_id(conn, project_id)
         if project:
             attachment_url = project.get("attachment_url")
@@ -329,7 +387,6 @@ async def browse_open_projects(
     if user["user_type"].strip() != 'client':
         return RedirectResponse(url="/contractor/dashboard")
     
-    # 取得所有公開招標的專案（包含投標數） # 從 crud 取得所有 open 專案（含投標數）
     open_projects = await crud.get_all_open_projects_with_bid_count(conn)
     
     return templates.TemplateResponse("client_browse_projects.html", {
@@ -458,3 +515,77 @@ async def resolve_thread_route(
         url=f"/client/project/{project_id}/thread/{thread_id}", 
         status_code=status.HTTP_302_FOUND
     )
+
+
+# ⭐ 處理委託人送出的評價 (POST)
+@router.post("/project/{project_id}/review")
+async def submit_client_review(
+    project_id: int,
+    score_1: int = Form(...), 
+    score_2: int = Form(...), 
+    score_3: int = Form(...), 
+    comment: str = Form(""),
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 1. 抓取專案資料
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="專案不存在")
+
+    # 安全檢查：確認權限
+    if project['client_id'] != user['uid']:
+         raise HTTPException(status_code=403, detail="您沒有權限評價此專案")
+
+    # 檢查專案是否已結案
+    if project['status'] != 'completed':
+        raise HTTPException(status_code=400, detail="專案尚未結案，無法評價")
+
+    # 找出接案人 ID 
+    contractor_id = project.get('accepted_contractor_id')
+    
+    if not contractor_id:
+        raise HTTPException(status_code=400, detail="此專案沒有得標者，無法進行評價")
+    
+    # 期限檢查 (7天)
+    if project['completed_at']:
+        deadline = project['completed_at'] + timedelta(days=7)
+        if datetime.now() > deadline:
+            raise HTTPException(status_code=400, detail="已超過評價期限 (7天)，無法進行評價。")
+    else:
+        # 如果狀態是 completed 但沒有時間，代表資料庫資料有異常
+        raise HTTPException(status_code=400, detail="專案結案時間資料異常")
+
+    # 檢查是否重複評價
+    if await crud.check_if_reviewed(conn, project_id, user['uid']):
+        return RedirectResponse(url="/client/dashboard", status_code=303)
+
+    # 4. 寫入評價
+    await crud.create_review(
+        conn=conn,
+        project_id=project_id,
+        reviewer_id=user['uid'],
+        reviewee_id=contractor_id,
+        role_type='client_to_contractor',
+        s1=score_1, s2=score_2, s3=score_3,
+        comment=comment
+    )
+
+    return RedirectResponse(url="/client/dashboard", status_code=303)
+
+
+# 🆕 API: 取得某位使用者的評價資料 (供前端 Modal 使用)
+@router.get("/api/user/{user_id}/reviews")
+async def get_user_reviews_api(
+    user_id: int, 
+    conn: Connection = Depends(getDB)
+):
+    # 1. 取得統計
+    stats = await crud.get_user_reputation_stats(conn, user_id)
+    # 2. 取得詳細列表
+    reviews = await crud.get_user_received_reviews_public(conn, user_id)
+    
+    return {
+        "stats": stats,
+        "reviews": reviews
+    }
