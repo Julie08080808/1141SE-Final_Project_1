@@ -19,6 +19,8 @@ import crud
 import os
 import shutil
 from datetime import datetime, timedelta
+import ai_service  # 🎯 [新增] 導入 AI 服務
+import mimetypes   # 🎯 [新增] 用來判斷檔案類型
 
 # 統一定義上傳資料夾
 UPLOAD_DIR = "uploads" 
@@ -141,6 +143,8 @@ async def create_new_project(
 
     # 處理檔案上傳
     attachment_url = None
+    ai_result = None  # 🎯 [新增] 用來存 AI 結果的變數
+
     if attachment and attachment.filename:
         project_folder = os.path.join(UPLOAD_DIR, f"project_{new_project_id}", "attachment")
         os.makedirs(project_folder, exist_ok=True) 
@@ -150,15 +154,41 @@ async def create_new_project(
         try:
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(attachment.file, buffer)
+            
+            # --- 🤖 這裡開始 AI 介入 (同步版本) ---
+            # 判斷一下是否為 PDF 或純文字 (圖片也可以，Gemini 支援)
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                mime_type = "application/pdf" # 預設
+
+            print(f"🤖 AI 正在分析檔案: {attachment.filename} ...")
+            
+            # 呼叫 ai_service 分析
+            # 如果 ai_service 失敗會回傳 None，這裡就直接接住 None
+            ai_result = await ai_service.analyze_attachment(file_path, mime_type)
+            
+            if ai_result:
+                print("✅ AI 分析完成！")
+            else:
+                print("⚠️ AI 分析未產生結果或失敗 (將不顯示於前台)")
+            # ---------------------------
+
         finally:
             attachment.file.close()
         
         attachment_url = f"/uploads/project_{new_project_id}/attachment/{attachment.filename}"
 
+        # 更新資料庫：現在多傳入 ai_summary
         await crud.update_project(
-            conn=conn, project_id=new_project_id, client_id=user["uid"],
-            title=title, description=description, budget=budget, deadline=deadline,
-            attachment_url=attachment_url
+            conn=conn, 
+            project_id=new_project_id, 
+            client_id=user["uid"],
+            title=title, 
+            description=description, 
+            budget=budget, 
+            deadline=deadline,
+            attachment_url=attachment_url,
+            ai_summary=ai_result  # 🎯 [修改] 把結果傳進去 (如果是 None 就會存 NULL)
         )
     
     return RedirectResponse(url="/client/dashboard", status_code=status.HTTP_302_FOUND)
