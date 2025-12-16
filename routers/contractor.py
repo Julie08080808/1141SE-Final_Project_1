@@ -210,3 +210,94 @@ async def process_deliverable(
     
     # 成功後導回「我的投標」頁面
     return RedirectResponse(url="/contractor/my-bids", status_code=status.HTTP_302_FOUND)
+
+# ==========================================
+# 💬 接案人聊天室與討論功能 (Contractor Chat)
+# ==========================================
+
+# 1. 查看專案的所有討論串 (列表頁)
+@router.get("/project/{project_id}/threads", response_class=HTMLResponse)
+async def view_project_threads(
+    project_id: int,
+    request: Request,
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 檢查權限：只有該專案的得標者 (accepted_contractor_id) 可以看
+    project = await crud.get_project_by_id(conn, project_id)
+    
+    # 權限驗證邏輯：
+    # 1. 專案必須存在
+    # 2. 目前登入者 (user['uid']) 必須等於 專案的得標者 (project['accepted_contractor_id'])
+    if not project or project["accepted_contractor_id"] != user["uid"]:
+        # 若驗證失敗，印出 Log 方便除錯 (正式環境可拿掉 print)
+        print(f"[權限錯誤] User: {user['uid']}, Project Contractor: {project.get('accepted_contractor_id')}")
+        raise HTTPException(status_code=403, detail="權限不足：您不是此專案的得標接案人")
+
+    # 取得討論串
+    threads = await crud.get_issues_by_project_id(conn, project_id)
+
+    return templates.TemplateResponse("contractor_threads.html", {
+        "request": request,
+        "project": project,
+        "threads": threads
+    })
+
+# ❌ 已移除：接案人建立新討論的路由 (create_thread_by_contractor)
+# 依據需求，只有委託人 (Client) 可以開啟新議題。
+
+
+# 2. 進入聊天室 (共用模板 chat_room.html)
+@router.get("/project/{project_id}/thread/{thread_id}", response_class=HTMLResponse)
+async def view_chat_room_contractor(
+    project_id: int,
+    thread_id: int,
+    request: Request,
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 檢查權限
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project or project["accepted_contractor_id"] != user["uid"]:
+        raise HTTPException(status_code=403, detail="權限不足")
+
+    thread = await crud.get_issue_by_id(conn, thread_id)
+    messages = await crud.get_comments_by_issue_id(conn, thread_id)
+
+    return templates.TemplateResponse("chat_room.html", {
+        "request": request,
+        "project": project,
+        "thread": thread,
+        "messages": messages,
+        "current_user": user
+    })
+
+# 3. 接案人發送訊息 (回覆議題)
+@router.post("/project/{project_id}/thread/{thread_id}/send", response_class=RedirectResponse)
+async def send_message_by_contractor(
+    project_id: int,
+    thread_id: int,
+    content: str = Form(...),
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 檢查權限
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project or project["accepted_contractor_id"] != user["uid"]:
+        raise HTTPException(status_code=403, detail="權限不足")
+
+    # 🔥 新增檢查：若專案已結案，強制禁止留言
+    if project["status"].strip() == 'completed':
+        raise HTTPException(status_code=400, detail="專案已結案，無法再傳送訊息")
+
+    thread = await crud.get_issue_by_id(conn, thread_id)
+    if thread["status"] == 'resolved':
+         raise HTTPException(status_code=400, detail="議題已解決，無法留言")
+
+    if content.strip():
+        await crud.create_issue_comment(conn, thread_id, user["uid"], content)
+
+    return RedirectResponse(
+        url=f"/contractor/project/{project_id}/thread/{thread_id}", 
+        status_code=status.HTTP_302_FOUND
+    )

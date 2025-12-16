@@ -2,9 +2,8 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>暨柴工作委託平台</title>
+<title>暨柴工作委託平台 - 管理專案</title>
 
-<!-- 🎨 CSS 主題樣式區 -->
 <style>
   /* --- 🩷 主題顏色變數設定 --- */
   :root {
@@ -21,8 +20,8 @@
 
   /* --- 🧱 全域樣式設定 --- */
   body {
-    font-family: "Noto Sans TC", sans-serif; /* 字型 */
-    background-color: var(--pink-light);     /* 粉色背景 */
+    font-family: "Noto Sans TC", sans-serif;
+    background-color: var(--pink-light);
     color: var(--text);
     margin: 0;
     padding: 0;
@@ -30,21 +29,20 @@
 
   /* --- 🌸 頁首樣式 --- */
   header {
-    background-color: var(--pink-nav);       /* 導覽背景 */
+    background-color: var(--pink-nav);
     color: var(--text);
-    padding: 15px 40px;                      /* 內距 */
+    padding: 15px 40px;
     display: flex;
-    justify-content: space-between;          /* 左右排列 */
+    justify-content: space-between;
     align-items: center;
     box-shadow: var(--shadow);
   }
 
   header h2 {
-    color: var(--theme-red);                 /* 標題文字紅色 */
+    color: var(--theme-red);
     margin: 0;
   }
 
-  /* 返回按鈕樣式 */
   header a {
     color: var(--white);
     text-decoration: none;
@@ -57,27 +55,22 @@
   }
 
   header a:hover {
-    background-color: #e04063;               /* hover 時變深色 */
+    background-color: #e04063;
   }
 
   /* --- 📦 主要內容區塊 --- */
   main {
-    max-width: 1000px;                       /* 最大寬度 */
-    margin: 40px auto;                       /* 置中 */
-    background-color: var(--white);          /* 白色背景 */
-    border-radius: 15px;                     /* 圓角 */
-    padding: 40px 50px;                      /* 內距 */
-    box-shadow: var(--shadow);               /* 陰影 */
+    max-width: 1000px;
+    margin: 40px auto;
+    background-color: var(--white);
+    border-radius: 15px;
+    padding: 40px 50px;
+    box-shadow: var(--shadow);
   }
 
-  /* 標題樣式 */
-  h1 {
-    color: var(--theme-red);
-    margin-top: 0;
-  }
-
+  h1 { color: var(--theme-red); margin-top: 0; }
   h2 {
-    border-left: 5px solid var(--theme-red); /* 左側紅線 */
+    border-left: 5px solid var(--theme-red);
     padding-left: 10px;
     margin-top: 35px;
     color: black;
@@ -91,19 +84,9 @@
     padding: 20px;
     margin-top: 20px;
   }
-
-  .project-details p {
-    margin: 8px 0;
-  }
-
-  .project-details a {
-    color: var(--theme-red);
-    text-decoration: none;
-  }
-
-  .project-details a:hover {
-    text-decoration: underline;
-  }
+  .project-details p { margin: 8px 0; }
+  .project-details a { color: var(--theme-red); text-decoration: none; }
+  .project-details a:hover { text-decoration: underline; }
 
   /* --- 📊 表格樣式 --- */
   table {
@@ -113,87 +96,120 @@
     border-radius: 12px;
     overflow: hidden;
   }
-
   th, td {
     border-bottom: 1px solid var(--border-color);
     padding: 12px 10px;
     text-align: left;
     font-size: 15px;
   }
-
-  th {
-    background-color: #ffeef1; /* 標題列底色 */
-    color: var(--text-light);
-  }
-
-  tr:hover {
-    background-color: #fff4f7; /* 滑過整列變淡粉 */
-  }
+  th { background-color: #ffeef1; color: var(--text-light); }
+  tr:hover { background-color: #fff4f7; }
 
   /* --- 🧷 按鈕樣式 --- */
   button {
     background-color: var(--theme-red);
     color: white;
-    border: 2px solid var(--theme-red); /* 增加邊框 */
+    border: 2px solid var(--theme-red);
     padding: 8px 14px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
     transition: background 0.3s, border-color 0.3s;
   }
-
   button:hover {
     background-color: #e04063;
-    border-color: #e04063; /* hover 時邊框變色 */
+    border-color: #e04063;
   }
+  button:focus { outline: none; }
 
-  button:focus {
-    outline: none; /* 移除原本的 focus 外框 */
-  }
-
-  /* ✅ 狀態按鈕顏色：通過/退件 */
+  /* 狀態按鈕顏色 */
   button[style*="d4edda"] {
-    background-color: #e9f6eb !important; /* 綠色按鈕背景 */
-    color: #20663b;
-    border: 1px solid #cde5cf;
+    background-color: #e9f6eb !important; color: #20663b; border: 1px solid #cde5cf;
   }
-
   button[style*="f8d7da"] {
-    background-color: #fde2e4 !important; /* 紅色按鈕背景 */
-    color: #8a1b2f;
-    border: 1px solid #f2b6c1;
+    background-color: #fde2e4 !important; color: #8a1b2f; border: 1px solid #f2b6c1;
   }
 
-  /* 頁尾樣式 */
-  footer {
-    text-align: center;
-    font-size: 13px;
-    color: var(--text-light);
-    margin: 40px 0 20px;
+  /* --- 💬 新增功能：溝通區塊 CSS (折疊效果) --- */
+  
+  /* 外層容器 */
+  details.chat-section {
+    margin-top: 40px;        /* 與上方區塊的距離 */
+    background-color: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
   }
 
-  .action-links {
-    margin-top: 10px;
+  /* 偽裝成按鈕的標題 (summary) */
+  summary.chat-toggle-btn {
+    background-color: #607d8b; /* 藍灰色，區別於紅色主色 */
+    color: white;
+    padding: 15px 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    list-style: none;          /* 移除預設三角形 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.3s;
   }
 
-  .action-links a button {
-    margin-left: 10px;
+  summary.chat-toggle-btn:hover { background-color: #546e7a; }
+  summary.chat-toggle-btn::-webkit-details-marker { display: none; }
+
+  /* 自定義展開/收合文字 */
+  summary.chat-toggle-btn::after { content: '➕ 點此展開'; font-size: 14px; }
+  details[open] summary.chat-toggle-btn::after { content: '➖ 點此收合'; }
+
+  /* 展開後的內容區域 */
+  .chat-content {
+    padding: 25px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #ddd;
   }
+
+  /* 討論列表樣式 */
+  .thread-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .thread-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: white; padding: 15px 20px; border-radius: 8px;
+    text-decoration: none; color: var(--text);
+    border-left: 6px solid var(--theme-red);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .thread-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background-color: #fff0f3;
+  }
+
+  .thread-title { font-weight: bold; font-size: 16px; display: block; }
+  .thread-info { font-size: 13px; color: #666; margin-top: 4px; }
+
+  /* 新增討論的表單 */
+  .new-thread-form { margin-bottom: 20px; display: flex; gap: 10px; }
+  .new-thread-input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline:none; }
+  .new-thread-input:focus { border-color: var(--theme-red); }
+
+  /* 頁尾 */
+  .action-links { margin-top: 10px; }
+  .action-links a button { margin-left: 10px; }
 </style>
 </head>
 
 <body>
-<!-- 🌸 頁首區：標題與返回儀表板按鈕 -->
 <header>
-  <h2>🌻 管理專案</h2> <!-- 左邊主標 -->
-  <a href="/client/dashboard">返回我的儀表板</a> <!-- 右邊按鈕 -->
+  <h2>🌻 管理專案</h2>
+  <a href="/client/dashboard">返回我的儀表板</a>
 </header>
 
-<!-- 📦 主內容區 -->
 <main>
-  <h1>我的專案：{{ project.title.strip() }}</h1> <!-- 顯示專案名稱 -->
+  <h1>我的專案：{{ project.title.strip() }}</h1>
 
-  <!-- ✏️ 若專案開放中可編輯 -->
   <div class="action-links">
     {% if project.status.strip() == 'open' %}
       <a href="/client/project/{{ project.id }}/edit">
@@ -202,7 +218,6 @@
     {% endif %}
   </div>
 
-  <!-- 📋 專案詳細資料 -->
   <div class="project-details">
     <h3>📋 專案詳情</h3>
     <p><strong>目前狀態：</strong> {{ project.status.strip() }}</p>
@@ -218,7 +233,6 @@
     {% endif %}
   </div>
 
-  <!-- 💰 收到的報價區塊 -->
   <h2>💰 收到的報價</h2>
   {% if bids %}
     <table>
@@ -240,7 +254,6 @@
           <td>{{ bid.status.strip() }}</td>
           <td>
             {% if bid.status.strip() == 'pending' and project.status.strip() == 'open' %}
-              <!-- 按下按鈕可選擇此報價為得標者 -->
               <form action="/client/project/{{ project.id }}/select/{{ bid.id }}" method="post" style="margin:0;">
                 <button type="submit">選擇此報價</button>
               </form>
@@ -258,10 +271,8 @@
     <p style="color:#888;">這個專案目前還沒有人報價。</p>
   {% endif %}
 
-  <!-- 📦 若專案有交付檔案（非 open 狀態才會顯示） -->
   {% if project.status.strip() in ['submitted', 'completed', 'in_progress'] %}
   <h2>📦 交付的檔案</h2>
-
   {% if deliverables %}
     <table>
       <thead>
@@ -282,18 +293,16 @@
           <td>{{ deliverable.status.strip() }}</td>
           <td>
             {% if deliverable.status.strip() == 'submitted' %}
-              <!-- ✅ 接受成果並結案 -->
               <form action="/client/project/{{ project.id }}/deliverable/{{ deliverable.id }}/approve" method="post" style="display:inline;">
                 <button type="submit" style="background-color: #d4edda;">✅ 接受並結案</button>
               </form>
-              <!-- ❌ 駁回成果 -->
               <form action="/client/project/{{ project.id }}/deliverable/{{ deliverable.id }}/reject" method="post" style="display:inline;">
                 <button type="submit" style="background-color: #f8d7da;">❌ 退件</button>
               </form>
             {% elif deliverable.status.strip() == 'accepted' %}
               (已結案)
             {% elif deliverable.status.strip() == 'rejected' %}
-              (已退件，等待接案人重傳)
+              (已退件)
             {% endif %}
           </td>
         </tr>
@@ -305,7 +314,59 @@
   {% endif %}
   {% endif %}
 
-  <!-- 🔙 返回上一頁按鈕 -->
+
+  {% if project.status.strip() != 'open' %}
+  
+    <details class="chat-section">
+      <summary class="chat-toggle-btn">
+        💬 專案溝通與待辦事項
+      </summary>
+
+      <div class="chat-content">
+        
+        {% if project.status.strip() != 'completed' %}
+          <form class="new-thread-form" action="/client/project/{{ project.id }}/thread/create" method="post">
+            <input type="text" name="title" class="new-thread-input" placeholder="輸入想討論的主題，例如：Logo 配色調整..." required>
+            <button type="submit" style="background-color: #28a745; border-color: #28a745;">＋ 新增討論</button>
+          </form>
+        {% else %}
+          <div style="background-color: #eee; color: #666; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+            🔒 此專案已結案，無法新增討論事項。
+          </div>
+        {% endif %}
+
+        <hr style="border: 0; border-top: 1px dashed #ddd; margin: 20px 0;">
+
+        <div class="thread-list">
+          {% if threads %}
+              {% for thread in threads %}
+              <a href="/client/project/{{ project.id }}/thread/{{ thread.id }}" class="thread-item">
+                <div>
+                  <span class="thread-title">
+                     {% if thread.status == 'resolved' %}✅{% else %}📝{% endif %}
+                     {{ thread.title }}
+                     {% if thread.status == 'resolved' %}<span style="font-size:12px; color:green; font-weight:normal;">(已解決)</span>{% endif %}
+                  </span>
+                  <div class="thread-info">
+                     建立時間：{{ thread.created_at.strftime('%Y-%m-%d %H:%M') }}
+                  </div>
+                </div>
+                <button style="font-size: 12px; padding: 5px 10px; cursor:pointer;">
+                  進入聊天 ➡
+                </button>
+              </a>
+              {% endfor %}
+          {% else %}
+            <p style="text-align: center; color: #888; padding: 10px;">
+                目前沒有待辦事項或討論，請使用上方欄位新增。
+            </p>
+          {% endif %}
+        </div>
+        
+      </div>
+    </details>
+
+  {% endif %}
   <br/>
   <div style="text-align:center; margin-top: 20px;">
     <button onclick="window.history.back()" 

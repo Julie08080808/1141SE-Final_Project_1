@@ -124,14 +124,11 @@ async def get_project_by_id(conn: Connection, project_id: int):
         SELECT 
             p.*, 
             u.name as client_name,
-            b.contractor_id as accepted_contractor_id  -- <-- [ 新增 ]
+            b.contractor_id as accepted_contractor_id  -- 👈 關鍵：必須抓出得標者 ID
         FROM projects p
-        
         JOIN users u ON p.client_id = u.uid
-        
-        -- [ 新增 ] 我們用 LEFT JOIN，因為 'open' 專案還沒有 accepted_bid_id
+        -- 使用 LEFT JOIN 確保就算還沒得標也能查出專案資料
         LEFT JOIN bids b ON p.accepted_bid_id = b.id 
-        
         WHERE p.id = %s
     """
     async with conn.cursor() as cur:
@@ -471,3 +468,75 @@ async def get_all_open_projects_with_bid_count(conn: Connection):
         await cur.execute(sql)
         return await cur.fetchall()
     
+# ==========================================
+# 💬 Issues & Comments (聊天室/待辦事項) - [新增區塊]
+# ==========================================
+
+# 1. 建立新的議題 (Thread)
+async def create_issue(conn: Connection, project_id: int, creator_id: int, title: str):
+    sql = """
+        INSERT INTO issues (project_id, creator_id, title, status)
+        VALUES (%s, %s, %s, 'open')
+        RETURNING id
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(sql, (project_id, creator_id, title))
+        await conn.commit()
+        return await cur.fetchone()
+
+# 2. 取得某專案的所有議題 (用於 bid_list.html 列表)
+async def get_issues_by_project_id(conn: Connection, project_id: int):
+    sql = """
+        SELECT id, title, status, created_at, updated_at
+        FROM issues
+        WHERE project_id = %s
+        ORDER BY created_at DESC
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(sql, (project_id,))
+        return await cur.fetchall()
+
+# 3. 取得單一議題詳情 (用於 chat_room.html 標題)
+async def get_issue_by_id(conn: Connection, issue_id: int):
+    sql = "SELECT * FROM issues WHERE id = %s"
+    async with conn.cursor() as cur:
+        await cur.execute(sql, (issue_id,))
+        return await cur.fetchone()
+
+# 4. 建立新留言 (發送訊息)
+async def create_issue_comment(conn: Connection, issue_id: int, user_id: int, content: str):
+    # 插入留言
+    sql_comment = """
+        INSERT INTO issue_comments (issue_id, user_id, content)
+        VALUES (%s, %s, %s)
+    """
+    # 更新議題的 updated_at (讓它浮到最上面或顯示最新更新)
+    sql_update_issue = "UPDATE issues SET updated_at = CURRENT_TIMESTAMP WHERE id = %s"
+    
+    async with conn.cursor() as cur:
+        await cur.execute(sql_comment, (issue_id, user_id, content))
+        await cur.execute(sql_update_issue, (issue_id,))
+        await conn.commit()
+        return True
+
+# 5. 取得某議題的所有留言 (用於 chat_room.html 對話紀錄)
+async def get_comments_by_issue_id(conn: Connection, issue_id: int):
+    sql = """
+        SELECT 
+            c.id, c.content, c.created_at, c.user_id as sender_id,
+            u.name as sender_name, u.user_type
+        FROM issue_comments c
+        JOIN users u ON c.user_id = u.uid
+        WHERE c.issue_id = %s
+        ORDER BY c.created_at ASC
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(sql, (issue_id,))
+        return await cur.fetchall()
+# 6. 將議題設為已解決 (Resolved)
+async def resolve_issue(conn: Connection, issue_id: int):
+    sql = "UPDATE issues SET status = 'resolved', updated_at = CURRENT_TIMESTAMP WHERE id = %s"
+    async with conn.cursor() as cur:
+        await cur.execute(sql, (issue_id,))
+        await conn.commit()
+        return True

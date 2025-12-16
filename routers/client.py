@@ -166,15 +166,18 @@ async def get_project_management_page(
     if not project or project["client_id"] != user["uid"]:
         return HTMLResponse("專案不存在或您沒有權限。", status_code=403)
     
-    bids = await crud.get_bids_for_project(conn, project_id)     # 取得專案所有投標紀錄（含接案人名稱）
+    bids = await crud.get_bids_for_project(conn, project_id)
     deliverables = await crud.get_deliverables_for_project(conn, project_id)
+    
+    # 👇 [新增] 撈取該專案的討論串 (Issues)
+    threads = await crud.get_issues_by_project_id(conn, project_id)
 
     return templates.TemplateResponse("bid_list.html", {  
-        #它的作用是：將資料傳入 bid_list.html 模板，然後產生一個完整的 HTML 回應給使用者
         "request": request,
         "project": project,
         "bids": bids,
         "deliverables": deliverables, 
+        "threads": threads,          # 👈 [新增] 傳遞給模板
         "user_name": user["name"].strip()
     })
 
@@ -334,3 +337,124 @@ async def browse_open_projects(
         "user_name": user["name"].strip(),
         "projects": open_projects
     })
+
+# ==========================================
+# 💬 聊天室 / 待辦事項路由 (Chat / Issues)
+# ==========================================
+
+# 🆕 路由 A: 建立新討論串
+# routers/client.py
+
+@router.post("/project/{project_id}/thread/create", response_class=RedirectResponse)
+async def create_project_thread(
+    project_id: int,
+    request: Request,
+    title: str = Form(...),
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 檢查權限
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project or project["client_id"] != user["uid"]:
+        raise HTTPException(status_code=403, detail="權限不足")
+
+    # 🔥 修改：如果專案已結案 (completed) 或 還在招標中 (open)，都不可新增討論
+    status_str = project["status"].strip()
+    
+    if status_str == 'completed':
+        return HTMLResponse("專案已結案，無法新增討論。", status_code=400)
+        
+    if status_str == 'open':
+        return HTMLResponse("專案尚在招標中，無法新增討論。", status_code=400)
+
+    # 建立議題
+    await crud.create_issue(conn, project_id, user["uid"], title)
+    
+    return RedirectResponse(url=f"/client/project/{project_id}/manage", status_code=status.HTTP_302_FOUND)
+
+
+# 🆕 路由 B: 進入聊天室頁面 (chat_room.html)
+@router.get("/project/{project_id}/thread/{thread_id}", response_class=HTMLResponse)
+async def view_chat_room(
+    project_id: int,
+    thread_id: int,
+    request: Request,
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 檢查權限
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project or project["client_id"] != user["uid"]:
+        return HTMLResponse("您沒有權限查看此專案的討論。", status_code=403)
+
+    # 取得議題詳情
+    thread = await crud.get_issue_by_id(conn, thread_id)
+    if not thread:
+        raise HTTPException(status_code=404, detail="討論串不存在")
+
+    # 取得歷史留言
+    messages = await crud.get_comments_by_issue_id(conn, thread_id)
+
+    # 渲染 chat_room.html
+    return templates.TemplateResponse("chat_room.html", {
+        "request": request,
+        "project": project,
+        "thread": thread,
+        "messages": messages,
+        "current_user": user,  # 傳入 current_user 供模板判斷是左邊還是右邊
+    })
+
+
+# 🆕 路由 C: 發送訊息
+@router.post("/project/{project_id}/thread/{thread_id}/send", response_class=RedirectResponse)
+async def send_chat_message(
+    project_id: int,
+    thread_id: int,
+    content: str = Form(...),
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project or project["client_id"] != user["uid"]:
+        raise HTTPException(status_code=403, detail="權限不足")
+
+    # 🔥 新增檢查：若專案已結案，強制禁止留言 (無論議題是否 open)
+    if project["status"].strip() == 'completed':
+        return HTMLResponse("專案已結案，無法再傳送訊息。", status_code=400)
+
+    thread = await crud.get_issue_by_id(conn, thread_id)
+    if not thread:
+        raise HTTPException(status_code=404, detail="討論串不存在")
+        
+    if thread["status"] == 'resolved':
+         return HTMLResponse("此議題已解決，無法繼續留言。", status_code=400)
+
+    if content.strip():
+        await crud.create_issue_comment(conn, thread_id, user["uid"], content)
+
+    return RedirectResponse(
+        url=f"/client/project/{project_id}/thread/{thread_id}", 
+        status_code=status.HTTP_302_FOUND
+    )
+
+# 👇 (新增這個路由) 路由 D: 將議題設為已解決
+@router.post("/project/{project_id}/thread/{thread_id}/resolve", response_class=RedirectResponse)
+async def resolve_thread_route(
+    project_id: int,
+    thread_id: int,
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 檢查權限
+    project = await crud.get_project_by_id(conn, project_id)
+    if not project or project["client_id"] != user["uid"]:
+        raise HTTPException(status_code=403, detail="權限不足")
+
+    # 執行更新
+    await crud.resolve_issue(conn, thread_id)
+    
+    # 導回聊天室 (讓使用者看到介面變化)
+    return RedirectResponse(
+        url=f"/client/project/{project_id}/thread/{thread_id}", 
+        status_code=status.HTTP_302_FOUND
+    )

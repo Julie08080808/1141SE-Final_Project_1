@@ -142,6 +142,7 @@
       border-bottom: 1px solid var(--border-color);
       padding: 12px 15px;
       text-align: left;
+      vertical-align: middle;
     }
 
     th {
@@ -162,6 +163,7 @@
       transition: background-color 0.3s;
       cursor: pointer;
       display: inline-block;
+      text-align: center;
     }
 
     .btn:hover { background-color: #ff7b9d; }
@@ -191,21 +193,11 @@
     }
 
     /* 🌸 狀態顯示顏色 (無外框) */
-    .status-pending {
-      color: #856404; /* 黃色 */
-    }
-    .status-progress {
-      color: #0d6efd; /* 藍色 */
-    }
-    .status-submitted {
-      color: #0f5132; /* 綠色 */
-    }
-    .status-review {
-      color: #842029; /* 紅色 */
-    }
-    .status-completed {
-      color: #2e7d32; /* 深綠 */
-    }
+    .status-pending { color: #856404; }
+    .status-progress { color: #0d6efd; }
+    .status-submitted { color: #0f5132; }
+    .status-review { color: #842029; }
+    .status-completed { color: #2e7d32; }
 
     footer {
       text-align: center;
@@ -217,7 +209,6 @@
 </head>
 <body>
 
-<!-- 🌸 Header -->
 <header class="top-header">
   <div class="logo-area">
     <img src="/工作平台.png" alt="平台Logo">
@@ -236,9 +227,6 @@
   </div>
 </header>
 
-
-
-<!-- 🌸 主體內容 -->
 <div class="dashboard-wrapper">
   <nav class="sidebar">
     <div class="sidebar-nav">
@@ -253,7 +241,6 @@
       <h2 id="tab-title">審核中</h2>
     </div>
 
-    <!-- 🔹 審核中：等待委託人選擇接案人 -->
     <div id="pending-tab" class="content-tab active">
       <div class="table-container">
         {% set pending_bids = bids | selectattr('bid_status', 'equalto', 'pending') | list %}
@@ -293,7 +280,6 @@
       </div>
     </div>
 
-    <!-- 🔸 執行中：已被選中 + 可以上傳/重傳檔案 -->
     <div id="inprogress-tab" class="content-tab">
       <div class="table-container">
         {% set inprogress_bids = bids 
@@ -332,11 +318,23 @@
               </td>
               <td>
                 {% if bid.project_status == 'in_progress' %}
-                  <a href="/contractor/project/{{ bid.project_id }}/deliver" class="btn">📤 上傳交付檔案</a>
+                  <div style="display:flex; gap:5px; flex-direction:column;">
+                    <a href="/contractor/project/{{ bid.project_id }}/deliver" class="btn">📤 上傳交付檔案</a>
+                    <a href="/contractor/project/{{ bid.project_id }}/threads" class="btn" style="background-color:#17a2b8;">💬 進入討論室</a>
+                  </div>
+
                 {% elif bid.project_status == 'submitted' %}
-                  <span style="color:#888;">等待委託人審核...</span>
+                  <span style="color:#888; font-size:13px;">等待委託人審核...</span>
+                  <div style="margin-top:5px;">
+                     <a href="/contractor/project/{{ bid.project_id }}/threads" class="btn" style="background-color:#17a2b8;">💬 進入討論室</a>
+                  </div>
+
                 {% elif bid.project_status == 'review' %}
-                  <a href="/contractor/project/{{ bid.project_id }}/deliver" class="btn btn-warning">🔄 重新上傳檔案</a>
+                  <div style="display:flex; gap:5px; flex-direction:column;">
+                    <a href="/contractor/project/{{ bid.project_id }}/deliver" class="btn btn-warning">🔄 重新上傳檔案</a>
+                    <a href="/contractor/project/{{ bid.project_id }}/threads" class="btn" style="background-color:#17a2b8;">💬 進入討論室</a>
+                  </div>
+
                 {% else %}
                   -
                 {% endif %}
@@ -351,7 +349,6 @@
       </div>
     </div>
 
-    <!-- ✅ 已完成：委託人已同意結案 -->
     <div id="completed-tab" class="content-tab">
       <div class="table-container">
         {% set completed_bids = bids | selectattr('project_status', 'equalto', 'completed') | list %}
@@ -362,7 +359,7 @@
               <th>專案標題</th>
               <th>報價</th>
               <th>狀態</th>
-            </tr>
+              <th>操作</th> </tr>
           </thead>
           <tbody>
             {% for bid in completed_bids %}
@@ -374,6 +371,9 @@
               </td>
               <td>${{ '%.2f'|format(bid.price) }}</td>
               <td><span class="status-completed">✅ 已完成</span></td>
+              <td>
+                <a href="/contractor/project/{{ bid.project_id }}/threads" class="btn" style="background-color:#17a2b8;">💬 進入討論室</a>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
