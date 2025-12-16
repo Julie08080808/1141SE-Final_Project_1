@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>專案討論室 - 暨柴工作委託平台</title>
+<style>
+  /* --- 🎨 沿用你的主題變數 --- */
+  :root {
+    --pink-light: #FFE6EB;
+    --pink-nav: #FFC8D0;
+    --theme-red: #FF4B6E;
+    --text: #2a2a2a;
+    --white: #FFFFFF;
+    --border-color: #DDD;
+  }
+
+  body {
+    font-family: "Noto Sans TC", sans-serif;
+    background-color: var(--pink-light);
+    margin: 0; padding: 0; color: var(--text);
+  }
+
+  /* 簡易導覽列 */
+  header {
+    background-color: var(--pink-nav);
+    padding: 15px 40px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  }
+  header h2 { margin: 0; color: var(--theme-red); }
+  
+  /* 返回按鈕 */
+  .btn-back {
+    background-color: var(--theme-red); color: white; text-decoration: none;
+    padding: 8px 14px; border-radius: 8px; font-weight: bold;
+  }
+
+  /* --- 💬 聊天室容器 --- */
+  .chat-container {
+    max-width: 800px;
+    margin: 30px auto;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    display: flex; flex-direction: column;
+    height: 80vh; /* 固定高度讓它長得像聊天軟體 */
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 20px; border-bottom: 1px solid #eee; background: #fff0f3;
+  }
+  
+  .chat-header-content {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .chat-header h1 { margin: 0; font-size: 20px; color: var(--text); }
+  .chat-header p { margin: 5px 0 0; font-size: 13px; color: #666; }
+
+  /* 訊息顯示區 */
+  .messages-area {
+    flex: 1;
+    overflow-y: auto; /* 只有這區塊會捲動 */
+    padding: 20px;
+    background-color: #f9f9f9;
+    display: flex; flex-direction: column; gap: 15px;
+  }
+
+  /* 訊息泡泡樣式 */
+  .message {
+    max-width: 70%; padding: 12px 16px; border-radius: 15px;
+    font-size: 15px; line-height: 1.5; position: relative;
+    word-wrap: break-word; /* 防止長單字破版 */
+  }
+  
+  .message-meta {
+    font-size: 12px; margin-bottom: 4px; display: block;
+  }
+
+  /* 對方的訊息 (左邊) */
+  .msg-other {
+    align-self: flex-start;
+    background-color: #e9e9eb; color: #000;
+    border-bottom-left-radius: 2px;
+  }
+  .msg-other .message-meta { color: #666; }
+
+  /* 我的訊息 (右邊) */
+  .msg-self {
+    align-self: flex-end;
+    background-color: var(--theme-red); color: white;
+    border-bottom-right-radius: 2px;
+  }
+  .msg-self .message-meta { color: #ffccd5; text-align: right; }
+
+  /* 輸入框區域 */
+  .input-area {
+    padding: 20px; background: white; border-top: 1px solid #eee;
+  }
+  
+  .input-form { display: flex; gap: 10px; }
+  
+  .input-field {
+    flex: 1; padding: 12px; border: 1px solid #ccc;
+    border-radius: 20px; outline: none; font-size: 15px;
+  }
+  
+  .btn-send {
+    background-color: var(--theme-red); color: white; border: none;
+    padding: 0 25px; border-radius: 20px; cursor: pointer; font-weight: bold;
+  }
+  .btn-send:hover { background-color: #e04063; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <h2>💬 專案溝通室</h2>
+  
+  {% if current_user.user_type.strip() == 'client' %}
+    <a href="/client/project/{{ project.id }}/manage" class="btn-back">⬅ 返回專案</a>
+  {% else %}
+    <a href="/contractor/project/{{ project.id }}/threads" class="btn-back">⬅ 返回討論列表</a>
+  {% endif %}
+</header>
+
+<main class="chat-container">
+  <div class="chat-header">
+    <div class="chat-header-content">
+      <div>
+        <h1>
+          {% if thread.status == 'resolved' %}✅ [已解決] {% endif %}
+          討論主題：{{ thread.title }}
+        </h1>
+        <p>專案：{{ project.title }}</p>
+      </div>
+      
+      {% if current_user.user_type.strip() == 'client' and thread.status == 'open' %}
+        <form action="/client/project/{{ project.id }}/thread/{{ thread.id }}/resolve" method="post" style="margin:0;">
+          <button type="submit" style="background-color: #28a745; border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 14px;">
+            ✅ 設為已解決並結束討論
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="messages-area">
+    {% for msg in messages %}
+      {% if msg.sender_id == current_user.uid %}
+        <div class="message msg-self">
+          <span class="message-meta">我 - {{ msg.created_at.strftime('%m-%d %H:%M') }}</span>
+          {{ msg.content }}
+        </div>
+      {% else %}
+        <div class="message msg-other">
+          <span class="message-meta">{{ msg.sender_name }} - {{ msg.created_at.strftime('%m-%d %H:%M') }}</span>
+          {{ msg.content }}
+        </div>
+      {% endif %}
+    {% else %}
+      <p style="text-align:center; color:#999; margin-top:50px;">目前還沒有對話，開始討論吧！</p>
+    {% endfor %}
+    
+    {% if thread.status == 'resolved' %}
+      <div style="text-align: center; margin-top: 20px; color: #28a745;">
+        <hr style="border:0; border-top:1px dashed #ccc;">
+        <p style="font-weight:bold; margin-top:15px;">🎉 此議題已被委託人標記為「已解決」。</p>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if thread.status == 'open' and project.status.strip() != 'completed' %}
+    <div class="input-area">
+      {% if current_user.user_type.strip() == 'client' %}
+        <form class="input-form" action="/client/project/{{ project.id }}/thread/{{ thread.id }}/send" method="post">
+      {% else %}
+        <form class="input-form" action="/contractor/project/{{ project.id }}/thread/{{ thread.id }}/send" method="post">
+      {% endif %}
+      
+        <input type="text" name="content" class="input-field" placeholder="輸入訊息..." required autocomplete="off">
+        <button type="submit" class="btn-send">傳送</button>
+      </form>
+    </div>
+  {% else %}
+    <div class="input-area" style="background-color: #f0f0f0; text-align: center; color: #888; border-top: 1px solid #ddd;">
+      {% if project.status.strip() == 'completed' %}
+        🔒 此專案已正式結案，所有討論已凍結。
+      {% else %}
+        🔒 此討論串已標記為解決，無法再傳送訊息。
+      {% endif %}
+    </div>
+  {% endif %}
+</main>
+
+<script>
+  // 自動捲動到底部
+  var msgArea = document.querySelector('.messages-area');
+  msgArea.scrollTop = msgArea.scrollHeight;
+</script>
+
+</body>
+</html>

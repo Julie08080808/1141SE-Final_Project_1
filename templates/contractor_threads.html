@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>專案討論列表</title>
+<style>
+  :root {
+    --pink-bg: #FFF8F9;
+    --theme-red: #FF5E7E;
+    --text: #333;
+    --white: #FFFFFF;
+    --border-color: #EEE;
+  }
+  body { font-family: "Noto Sans TC", sans-serif; background: var(--pink-bg); color: var(--text); padding: 30px; }
+  
+  .container { max-width: 800px; margin: 0 auto; background: var(--white); padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+  
+  h2 { color: var(--theme-red); border-left: 5px solid var(--theme-red); padding-left: 10px; }
+  
+  .info-box {
+    background-color: #e9ecef; color: #495057; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;
+  }
+
+  /* 列表樣式 */
+  .thread-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: white; padding: 15px; border: 1px solid #ddd; border-radius: 8px;
+    text-decoration: none; color: var(--text); margin-bottom: 10px;
+    transition: 0.2s;
+  }
+  .thread-item:hover { background-color: #ffe6eb; border-color: var(--theme-red); }
+  .thread-title { font-weight: bold; font-size: 16px; }
+  
+  .btn { background: var(--theme-red); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+  .btn-back { background: #6c757d; text-decoration: none; display: inline-block; margin-top: 20px; color: white; padding: 10px 20px; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>💬 專案討論：{{ project.title }}</h2>
+  
+  <div class="info-box">
+    ℹ️ 這裡是與委託人溝通的列表。<strong>僅有委託人可以發起新的討論議題</strong>，您可以點擊下方議題進入回覆。
+  </div>
+
+  <div>
+    {% if threads %}
+      {% for thread in threads %}
+        <a href="/contractor/project/{{ project.id }}/thread/{{ thread.id }}" class="thread-item">
+          <div>
+            <span class="thread-title">
+               {% if thread.status == 'resolved' %}✅{% else %}📝{% endif %} {{ thread.title }}
+            </span>
+            <small style="color:#888; display:block;">
+              建立於 {{ thread.created_at.strftime('%Y-%m-%d %H:%M') }}
+              {% if thread.status == 'resolved' %} <span style="color:green;">(已解決)</span>{% endif %}
+            </small>
+          </div>
+          <button class="btn" style="font-size:12px;">進入溝通 ➡</button>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center; padding: 40px; color:#999; border: 2px dashed #eee; border-radius: 10px;">
+        <p>目前委託人尚未發起任何討論議題。</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <a href="/contractor/my-bids" class="btn-back">⬅ 返回我的專案</a>
+</div>
+
+</body>
+</html>
