@@ -231,16 +231,27 @@
     {% endif %}
     <a href="/history" class="active">歷史專案</a>
     {% if user_type == 'client' %}
+      <a href="/client/my-reviews">收到評價</a>
+    {% else %}
+      <a href="/contractor/my-reviews">收到評價</a>
+    {% endif %}
+    {% if user_type == 'client' %}
       <a href="/client/browse">公開招標專案</a>
     {% else %}
       <a href="/contractor/dashboard">公開招標專案</a>
     {% endif %}
   </nav>
-
-  <div class="user-info">
-    你好～委託人 {{ user_name }} 🪸
+    {% if user_type == 'client' %}
+    <div class="user-info">
+        你好～委託人 {{ user_name }} 🪸
+        <a href="/logout">登出</a>
+    </div>
+    {% else %}
+    <div class="user-info">
+        你好～接案人 {{ user_name }} 🪸
     <a href="/logout">登出</a>
-  </div>
+    </div>
+    {% endif %}
 </header>
 
 

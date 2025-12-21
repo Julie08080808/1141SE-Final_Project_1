@@ -79,7 +79,7 @@ async def get_client_dashboard(
         "completed_projects": completed_projects,
         "given_reviews": given_reviews,
         # 輔助變數 (讓前端知道現在在哪一頁，選填)
-        "active_tab": "projects"
+        "active_tab": "projects",
     })
 
 # --------------------------------------------------------
@@ -574,18 +574,50 @@ async def submit_client_review(
     return RedirectResponse(url="/client/dashboard", status_code=303)
 
 
-# 🆕 API: 取得某位使用者的評價資料 (供前端 Modal 使用)
-@router.get("/api/user/{user_id}/reviews")
-async def get_user_reviews_api(
-    user_id: int, 
-    conn: Connection = Depends(getDB)
+# routers/client.py
+
+@router.get("/my-reviews", response_class=HTMLResponse)
+async def client_self_review_page(
+    request: Request,
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user) # 確保是登入狀態
 ):
-    # 1. 取得統計
-    stats = await crud.get_user_reputation_stats(conn, user_id)
-    # 2. 取得詳細列表
-    reviews = await crud.get_user_received_reviews_public(conn, user_id)
+    # 1. 取得當前登入者的 UID
+    user_id = user["uid"]
     
-    return {
-        "stats": stats,
-        "reviews": reviews
+    # 2. 【核心呼叫】呼叫你寫的那兩段 CRUD 函式
+    stats = await crud.get_user_reputation_stats(conn, user_id)
+    reviews = await crud.get_user_received_reviews_public(conn, user_id)
+
+    # 🆕 取得排名資料
+    ranking = await crud.get_user_ranking(
+        conn, 
+        user_id, 
+        user['user_type'].strip()
+    )
+
+    # 🆕 取得活躍度
+    activity = await crud.get_user_activity_score(conn, user_id)
+
+    # 3. 定義維度名稱 (標籤)
+    # 因為資料庫只存 score_1, score_2...，我們要在這告訴前端它們代表什麼
+    labels = {
+        "s1": "需求描述清晰度",
+        "s2": "溝通協作友善度",
+        "s3": "驗收撥款準時度"
     }
+
+    # 4. 渲染網頁並把資料傳過去
+    return templates.TemplateResponse("review.html", {
+    "request": request,
+    "user": user,          # 🆕 加入這行（給 header 用）
+    "target_user": user,   # 保留這行
+    "stats": stats,
+    "reviews": reviews,
+    "labels": labels,
+    "ranking": ranking,      # 🆕 新增
+    "activity": activity,    # 🆕 新增
+    "is_self": True
+})
+
+

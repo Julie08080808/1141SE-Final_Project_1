@@ -363,6 +363,23 @@
 .form-row { margin-bottom: 15px; }
 .form-row label { display: block; font-weight: bold; margin-bottom: 5px; color: #444; }
 .form-row select, .form-row textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+
+/* 星星評分樣式 */
+.star-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.star-rating i {
+    color: #ffd700;
+    font-size: 1em;
+}
+
+.star-rating .far {
+    color: #ddd;
+}
+
 </style>
 </head>
 <body>
@@ -376,6 +393,7 @@
   <nav class="top-nav">
     <a href="/client/dashboard" class="active">我的專案</a>
     <a href="/history">歷史專案</a>
+    <a href="/client/my-reviews">收到評價</a>
     <a href="/client/browse">公開招標專案</a>
   </nav>
 
@@ -615,7 +633,30 @@
                             </td>
                             <td>
                                 {% set avg = ((review.score_1 + review.score_2 + review.score_3) / 3) | round(1) %}
-                            <span style="color: #f1c40f;">★ {{ avg }}</span>
+                                {% set full_stars = (avg | int) %}
+                                {% set has_half = ((avg % 1) >= 0.5) %}
+                                {% set empty_stars = 5 - full_stars - (1 if has_half else 0) %}
+    
+                                <!-- 整體評分 -->
+                                <div style="margin-bottom: 8px;">
+                                    <span class="star-rating">
+                                    {% for i in range(full_stars) %}
+                                    <i class="fas fa-star"></i>
+                                    {% endfor %}
+                                    {% if has_half %}
+                                    <i class="fas fa-star-half-alt"></i>
+                                    {% endif %}
+                                    {% for i in range(empty_stars) %}
+                                    <i class="far fa-star"></i>
+                                    {% endfor %}
+                                    <span style="font-size: 0.85em; color: #888; margin-left: 5px;">{{ avg }}</span>
+                                    </span>
+                                </div>
+    
+                                <!-- 細項評分 -->
+                                <div style="font-size: 0.8em; color: #666; line-height: 1.4;">
+                                <div>品質: {{ review.score_1 }} / 效率: {{ review.score_2 }} / 態度: {{ review.score_3 }}</div>
+                                </div>
                             </td>
                             <td>
                                 <div style="font-style: italic; color: #444;">
@@ -695,7 +736,7 @@
         </div>
     </main>
 </div>
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script>
 // 切換分頁
 function switchTab(event, tabId) {
