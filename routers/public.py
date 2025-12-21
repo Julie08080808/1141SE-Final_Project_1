@@ -15,6 +15,7 @@ from auth import get_current_user
 import crud
 from pathlib import Path 
 import re # 用於清理檔名
+from datetime import date
 
 # --------------------------------------------------------
 # 🧩 初始化設定區段
@@ -40,6 +41,10 @@ async def get_project_details(
     project = await crud.get_project_by_id(conn, project_id)
     if not project:                          
         raise HTTPException(status_code=404, detail="Project not found")
+    # 如果今天日期 > 截止日期，則視為過期
+    is_expired = False
+    if project["deadline"] and project["deadline"] < date.today():
+        is_expired = True
 
     # 2️⃣ 如果專案不是「open」狀態，就撈交付檔案（deliverables）
     deliverables = []
@@ -72,6 +77,7 @@ async def get_project_details(
             "deliverables": deliverables,    # 專案交付檔案列表
             "my_bid": my_bid,                # 該接案人投標內容（若有）
             "has_bid": has_bid,              # 是否已投標的布林值
+            "is_expired": is_expired,  # 🎯 補上這一行，前端才抓得到
             "client_stats": client_stats,
             "client_reviews": client_reviews
         },
@@ -93,6 +99,11 @@ async def submit_bid(
     # 限制只有接案人可以投標
     if user["user_type"].strip() != "contractor":
         raise HTTPException(status_code=403, detail="只有接案人可以投標")
+    
+    # 🎯 [新增] 提交時的最後防線：再次檢查日期
+    project = await crud.get_project_by_id(conn, project_id)
+    if project and project["deadline"] and project["deadline"] < date.today():
+        raise HTTPException(status_code=400, detail="此專案已超過報價截止日期，無法再投標。")
 
     proposal_url = None
     
@@ -155,6 +166,8 @@ async def submit_bid(
     except Exception as e:
         print(f"Database error on create_bid: {e}")
         raise HTTPException(status_code=500, detail="提交報價時發生資料庫錯誤。")
+    
+    
 
 # --------------------------------------------------------
 # 🕓 路由 3: "歷史紀錄" (GET)

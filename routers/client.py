@@ -107,10 +107,10 @@ async def create_new_project(
     budget: float = Form(...),
     deadline: date = Form(...),
     attachment: Optional[UploadFile] = File(None), 
-    conn: Connection = Depends(getDB),
-    user: dict = Depends(get_current_user)
+    conn: Connection = Depends(getDB), #用 getDB 函式取得資料庫連線
+    user: dict = Depends(get_current_user) #取得使用者身分
 ):
-    # 只允許委託人建立專案
+    # 只允許委託人建立專案 移除空白符號確認身分(怕使用者多打但這邊是db，怕有些情況db自動補滿空白)
     if user["user_type"].strip() != 'client':
         raise HTTPException(status_code=403, detail="Only clients can create projects")
 
@@ -126,7 +126,7 @@ async def create_new_project(
             "deadline": deadline 
         }, status_code=400)
 
-    # 先建立專案，取得 project_id
+    # 先建立專案，取得 project_id，以 ID 作為資料夾名稱 左邊是crud中定義的，右邊是前端表單取得的
     new_project = await crud.create_project(
         conn=conn,
         client_id=user["uid"],
@@ -139,27 +139,27 @@ async def create_new_project(
     if not new_project:
         raise HTTPException(status_code=500, detail="Create project failed")
 
-    new_project_id = new_project["id"]
+    new_project_id = new_project["id"] #拿到DB的ID編號
 
     # 處理檔案上傳
     attachment_url = None
     ai_result = None  # 🎯 [新增] 用來存 AI 結果的變數
 
-    if attachment and attachment.filename:
-        project_folder = os.path.join(UPLOAD_DIR, f"project_{new_project_id}", "attachment")
-        os.makedirs(project_folder, exist_ok=True) 
+    if attachment and attachment.filename: #檢查檔案存在/檔名是否為空
+        project_folder = os.path.join(UPLOAD_DIR, f"project_{new_project_id}", "attachment")# 委託人專案檔案上傳，建立專案資料夾uploads>project_id>attachment
+        os.makedirs(project_folder, exist_ok=True) # 確保資料夾存在
 
-        file_path = os.path.join(project_folder, attachment.filename)
+        file_path = os.path.join(project_folder, attachment.filename)# 剛才建好的資料夾路徑和原始檔名組合成完整路徑
         
         try:
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(attachment.file, buffer)
+            with open(file_path, "wb") as buffer:# 開啟檔案準備寫入buffer
+                shutil.copyfileobj(attachment.file, buffer)# 把上傳的檔案內容寫入暫存區
             
             # --- 🤖 這裡開始 AI 介入 (同步版本) ---
             # 判斷一下是否為 PDF 或純文字 (圖片也可以，Gemini 支援)
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if not mime_type:
-                mime_type = "application/pdf" # 預設
+            mime_type, _ = mimetypes.guess_type(file_path)# 用副檔名猜測類型
+            if not mime_type: # 如果猜得出，if not true 就是false，就不會執行下面;程式沒猜到，if not false 就是true，預設為 PDF
+                mime_type = "application/pdf" # 預設pdf
 
             print(f"🤖 AI 正在分析檔案: {attachment.filename} ...")
             
@@ -167,16 +167,16 @@ async def create_new_project(
             # 如果 ai_service 失敗會回傳 None，這裡就直接接住 None
             ai_result = await ai_service.analyze_attachment(file_path, mime_type)
             
-            if ai_result:
+            if ai_result:# 有結果才印成功 none就印失敗
                 print("✅ AI 分析完成！")
             else:
                 print("⚠️ AI 分析未產生結果或失敗 (將不顯示於前台)")
             # ---------------------------
 
         finally:
-            attachment.file.close()
+            attachment.file.close() 
         
-        attachment_url = f"/uploads/project_{new_project_id}/attachment/{attachment.filename}"
+        attachment_url = f"/uploads/project_{new_project_id}/attachment/{attachment.filename}"# 組合成可從網頁存取的路徑
 
         # 更新資料庫：現在多傳入 ai_summary
         await crud.update_project(
@@ -265,6 +265,9 @@ async def approve_deliverable(
         raise HTTPException(status_code=403, detail="Permission denied")
 
     await crud.approve_deliverable_and_complete_project(conn, project_id, deliverable_id, user["uid"])
+    
+    # 這樣使用者進入討論列表或聊天室時，會直接看到「已解決」的綠色狀態
+    await crud.resolve_all_issues_by_project(conn, project_id)
     
     return RedirectResponse(url=f"/client/project/{project_id}/manage", status_code=status.HTTP_302_FOUND)
 

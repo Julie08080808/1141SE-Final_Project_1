@@ -69,19 +69,19 @@ async def update_project(
     budget: float, 
     deadline: date,
     attachment_url: str | None = None,
-    ai_summary: str | None = None  # 🎯 [新增] 接收 AI 摘要
+    ai_summary: str | None = None  # 🎯 [新增] 接收 AI 摘要，若傳入 None，保留舊值；否則更新
 ):
-    # 修改 SQL，多更新一個 ai_summary 欄位
+    # 修改 SQL，多更新一個 ai_summary 欄位 (定義指令)
     sql = """
         UPDATE projects
         SET title = %s, description = %s, budget = %s, deadline = %s, 
-            attachment_url = COALESCE(%s, attachment_url), -- 這裡用 COALESCE 防止覆蓋成 NULL (選用)
+            attachment_url = COALESCE(%s, attachment_url), -- 這裡用 COALESCE 防止覆蓋成 NULL (選用)部分更新，不用一定要傳所有參數
             ai_summary = COALESCE(%s, ai_summary)          -- 🎯 [新增] 更新摘要
         WHERE id = %s 
           AND client_id = %s 
           AND status = 'open'
     """
-    async with conn.cursor() as cur:
+    async with conn.cursor() as cur:# (提交修改)
         # 傳入參數也要補上 ai_summary
         await cur.execute(sql, (
             title, description, budget, deadline, 
@@ -600,6 +600,20 @@ async def resolve_issue(conn: Connection, issue_id: int):
         await cur.execute(sql, (issue_id,))
         await conn.commit()
         return True
+# 7. [新增] 將該專案所有尚未關閉的議題全部設為已解決
+async def resolve_all_issues_by_project(conn: Connection, project_id: int):
+    """
+    當專案結案時，將該專案下所有狀態為 'open' 的議題自動改為 'resolved'
+    """
+    sql = """
+        UPDATE issues 
+        SET status = 'resolved', updated_at = CURRENT_TIMESTAMP 
+        WHERE project_id = %s AND status = 'open'
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(sql, (project_id,))
+        await conn.commit()
+        return cur.rowcount # 回傳受影響的行數
 
 
 # 1. 📊 新增：取得某使用者的「評價統計」 (平均分、總評數)

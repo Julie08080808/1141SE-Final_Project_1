@@ -2,6 +2,7 @@
 import google.generativeai as genai
 import os
 
+# 這個函數接收兩個資料，第一個是檔案路徑（必填），第二個是檔案類型（不填的話預設是 PDF），然後會回傳一段文字或空值。
 async def analyze_attachment(file_path: str, mime_type: str = "application/pdf") -> str | None: # 🎯 修改回傳型態提示
     # 1. 從環境變數抓取 Key
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -34,7 +35,7 @@ async def analyze_attachment(file_path: str, mime_type: str = "application/pdf")
         請用繁體中文回答，保持簡潔清晰，並且生成的回覆盡量在100字內，不需要使用*來加強表示文件核心目標等事項。
         """
 
-        # 5. 發送請求
+        # 5. 發送請求 提取文字部分
         response = model.generate_content([prompt, uploaded_file])
         return response.text
 

@@ -276,7 +276,12 @@
     <p><strong>委託人:</strong> {{ project.client_name.strip() }}</p>
     <p><strong>預算:</strong> ${{ "%.2f"|format(project.budget) }}</p>
     <p><strong>狀態:</strong> {{ project.status.strip() }}</p>
-    <p><strong>截止日期:</strong> {{ project.deadline.strftime('%Y-%m-%d') if project.deadline else 'N/A' }}</p>
+    <p><strong>截止日期:</strong> 
+      <span style="{% if is_expired %}color: #cc0000; font-weight: bold;{% endif %}">
+        {{ project.deadline.strftime('%Y-%m-%d') if project.deadline else 'N/A' }}
+        {% if is_expired %}(已截止/過期){% endif %}
+      </span>
+    </p>
   </div>
   
   <hr>
@@ -370,7 +375,14 @@
     </div>
 
   {% elif user.user_type.strip() == 'contractor' and project.status.strip() == 'open' %}
-    {% if has_bid or my_bid %}
+    
+    {% if is_expired %}
+      <div class="info-box" style="border-color: #f44336; background-color: #feebe6;">
+        <p><strong style="color: #c62828;">⚠️ 此專案報價已截止</strong></p>
+        <p>該專案的截止日期（{{ project.deadline.strftime('%Y-%m-%d') }}）已過，目前已不再接受新的報價提案。</p>
+      </div>
+    
+    {% elif has_bid or my_bid %}
       <div class="already-bid">
         <h2>✅ 你已投標此專案</h2>
         <p>你已經對此專案提交過報價,<strong>無法重複投標</strong>。</p>
