@@ -281,3 +281,43 @@ async def submit_review(
 
     # 6. 成功導回
     return RedirectResponse(url="/contractor/my-bids", status_code=303)
+
+
+@router.get("/my-reviews", response_class=HTMLResponse)
+async def contractor_self_review_page(
+    request: Request,
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    user_id = user["uid"]
+    stats = await crud.get_user_reputation_stats(conn, user_id)
+    reviews = await crud.get_user_received_reviews_public(conn, user_id)
+
+    # 🆕 取得排名資料
+    ranking = await crud.get_user_ranking(
+        conn, 
+        user_id, 
+        user['user_type'].strip()
+    )
+
+    # 🆕 取得活躍度
+    activity = await crud.get_user_activity_score(conn, user_id)
+
+
+    labels = {
+        "s1": "產出品質",
+        "s2": "執行效率", 
+        "s3": "合作態度"
+    }
+
+    return templates.TemplateResponse("review.html", {
+        "request": request,
+        "user": user,          # 🆕 給 header 用
+        "target_user": user,   # 給內容用
+        "stats": stats,
+        "reviews": reviews,
+        "labels": labels,
+        "ranking": ranking,      # 🆕 新增
+        "activity": activity,    # 🆕 新增
+        "is_self": True
+    })

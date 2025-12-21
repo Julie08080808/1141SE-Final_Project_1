@@ -563,7 +563,7 @@ async def get_user_received_reviews_public(conn: Connection, user_id: int):
     """
     sql = """
         SELECT 
-            r.score_1, r.score_2, r.score_3, r.comment, r.created_at,
+            r.id, r.project_id, r.reviewer_id, r.reviewee_id, r.score_1, r.score_2, r.score_3, r.comment, r.created_at,
             p.title as project_title,
             u.name as reviewer_name
         FROM reviews r
@@ -576,3 +576,116 @@ async def get_user_received_reviews_public(conn: Connection, user_id: int):
         await cur.execute(sql, (user_id,))
         return await cur.fetchall()
 
+
+# --------------------------------------------------------
+# 🏆 排名系統相關函數
+# --------------------------------------------------------
+
+async def get_user_ranking(conn: Connection, user_id: int, user_type: str):
+    """計算使用者排名"""
+    
+    # 1. 先查總人數
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT COALESCE(COUNT(DISTINCT reviewee_id), 0) as total
+            FROM reviews r
+            JOIN users u ON r.reviewee_id = u.uid
+            WHERE u.user_type = %s
+            """,
+            (user_type,)
+        )
+        total_result = await cur.fetchone()
+        total_users = total_result['total'] if total_result else 0
+    
+    # 2. 如果沒有任何評價，直接返回預設值
+    if total_users == 0:
+        return {
+            'rank': None,
+            'total_users': 0,
+            'percentile': 0,
+            'avg_score': 0.0,
+            'review_count': 0
+        }
+    
+    # 3. 再查排名
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            WITH ranked_users AS (
+                SELECT 
+                    reviewee_id,
+                    AVG((score_1 + score_2 + score_3) / 3.0) as avg_score,
+                    COUNT(*) as review_count,
+                    RANK() OVER (ORDER BY AVG((score_1 + score_2 + score_3) / 3.0) DESC) as rank
+                FROM reviews r
+                JOIN users u ON r.reviewee_id = u.uid
+                WHERE u.user_type = %s
+                GROUP BY reviewee_id
+            )
+            SELECT rank, avg_score, review_count
+            FROM ranked_users
+            WHERE reviewee_id = %s
+            """,
+            (user_type, user_id)
+        )
+        rank_result = await cur.fetchone()
+        
+        # 4. 如果該使用者沒有評價
+        if not rank_result:
+            return {
+                'rank': None,
+                'total_users': total_users,
+                'percentile': 0,
+                'avg_score': 0.0,
+                'review_count': 0
+            }
+        
+        # 5. 計算百分位
+        rank = int(rank_result['rank'])
+        avg_score = float(rank_result['avg_score'])
+        review_count = int(rank_result['review_count'])
+        
+        percentile = round(100.0 - (rank / total_users * 100), 1) if total_users > 0 else 0
+        
+        return {
+            'rank': rank,
+            'total_users': total_users,
+            'percentile': percentile,
+            'avg_score': avg_score,
+            'review_count': review_count
+        }
+
+
+async def get_user_activity_score(conn: Connection, user_id: int):
+    """計算使用者活躍度（近 30 天）"""
+    from psycopg.rows import dict_row
+    
+    sql = """
+        SELECT 
+            COALESCE(COUNT(*), 0) as recent_reviews,
+            CASE 
+                WHEN (SELECT COUNT(*) FROM reviews WHERE reviewee_id = %s) > 0
+                THEN ROUND(
+                    (CAST(COUNT(*) AS NUMERIC) / 
+                     NULLIF((SELECT COUNT(*) FROM reviews WHERE reviewee_id = %s), 0) * 100
+                    ), 0
+                )
+                ELSE 0
+            END as activity_score
+        FROM reviews
+        WHERE reviewee_id = %s
+          AND created_at >= NOW() - INTERVAL '30 days'
+    """
+    
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(sql, (user_id, user_id, user_id))
+        result = await cur.fetchone()
+        
+        if not result:
+            return {'activity_score': 0, 'recent_reviews': 0}
+        
+        return {
+            'activity_score': int(result['activity_score']) if result['activity_score'] else 0,
+            'recent_reviews': int(result['recent_reviews'])
+        }

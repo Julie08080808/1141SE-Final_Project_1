@@ -272,7 +272,25 @@
   width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
   font-size: 1rem; box-sizing: border-box;
 }
-  </style>
+
+/* 星星評分樣式 */
+.star-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.star-rating i {
+  font-size: 1em;
+  color: #ffd700;  /* 金色 */
+}
+
+.star-rating .far {
+  color: #ddd;  /* 空心星用淡灰色 */
+}
+
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -284,13 +302,14 @@
   </div>
 
   <nav class="top-nav">
-    <a href="/client/dashboard" class="active">我的專案</a>
+    <a href="/contractor/my-bids" class="active">我的專案</a>
     <a href="/history">歷史專案</a>
-    <a href="/client/browse">公開招標專案</a>
+    <a href="/contractor/my-reviews">收到評價</a>
+    <a href="/contractor/dashboard">公開招標專案</a>
   </nav>
 
   <div class="user-info">
-    你好～委託人 {{ user_name }} 🪸
+    你好～接案人 {{ user_name }} 🪸
     <a href="/logout">登出</a>
   </div>
 </header>
@@ -422,6 +441,7 @@
               <th>專案標題</th>
               <th>報價</th>
               <th>狀態</th>
+              <th>操作</th> 
             </tr>
           </thead>
           <tbody>
@@ -465,74 +485,90 @@
    
     <!-- 評價區塊待補 -->
     {% macro render_stars(score) %}
-    <span class="star-rating" style="color: #f1c40f; font-size: 1.1em; letter-spacing: 2px;">
-    {% for i in range(1, 6) %}
-      {{ "★" if i <= score else "☆" }}
+    <span class="star-rating" style="font-size: 1em; letter-spacing: 2px;">
+    {% set full_stars = score | int %}
+    {% set has_half = ((score % 1) >= 0.5) %}
+    {% set empty_stars = 5 - full_stars - (1 if has_half else 0) %}
+  
+    {# 完整星星 #}
+    {% for i in range(full_stars) %}
+      <i class="fas fa-star" style="color: #ffd700;"></i>
     {% endfor %}
+  
+    {# 半星 #}
+    {% if has_half %}
+    <i class="fas fa-star-half-alt" style="color: #ffd700;"></i>
+    {% endif %}
+  
+    {# 空心星 #}
+    {% for i in range(empty_stars) %}
+      <i class="far fa-star" style="color: #ddd;"></i>
+    {% endfor %}
+  
     <span style="font-size: 0.8em; color: #888; margin-left: 5px;">{{ score }}</span>
     </span>
     {% endmacro %}
 
-<div id="reviews-tab" class="content-tab" style="display: none;">
-<div class="table-container">
+  <div id="reviews-tab" class="content-tab" style="display: none;">
+  <div class="table-container">
     {% if given_reviews %}
-      <table class="data-table">
-        <thead>
-          <tr>
+    <table class="data-table">
+      <thead>
+        <tr>
           <th width="20%">專案標題</th>
           <th width="15%">評價對象</th>
           <th width="20%">整體評分</th>
           <th width="30%">評論內容</th>
           <th width="15%">日期</th>
         </tr>
-        </thead>
-  <tbody>
-  {% for review in given_reviews %}
-  <tr>
-    <td style="font-weight: 500;">
-      <a href="/project/{{ review.project_id }}" style="color: var(--theme-red); text-decoration: none;">
-        {{ review.project_title }}
-      </a>
-    </td>
+      </thead>
+      <tbody>
+      {% for review in given_reviews %}
+        <tr>
+          <td style="font-weight: 500;">
+          <a href="/project/{{ review.project_id }}" style="color: var(--theme-red); text-decoration: none;">
+            {{ review.project_title }}
+          </a>
+          </td>
 
-    <td>
-      <span style="color: #666;">{{ review.reviewee_name }}</span>
-      <div style="font-size: 0.8em; color: #999; margin-top: 4px;">委託人</div>
-    </td>
+          <td>
+            <span style="color: #666;">{{ review.reviewee_name }}</span>
+            <div style="font-size: 0.8em; color: #999; margin-top: 4px;">委託人</div>
+          </td>
 
-    <td>
-      {% set s1 = review.score_1|default(0)|int %}
-      {% set s2 = review.score_2|default(0)|int %}
-      {% set s3 = review.score_3|default(0)|int %}
-      {% set avg_score = ((s1 + s2 + s3) / 3) | round(1) %}
+          <td>
+            {% set s1 = review.score_1|default(0)|int %}
+            {% set s2 = review.score_2|default(0)|int %}
+            {% set s3 = review.score_3|default(0)|int %}
+            {% set avg_score = ((s1 + s2 + s3) / 3) | round(1) %}
 
-      {{ render_stars(avg_score|int) }}
-      <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
-        需求:{{ s1 }} / 驗收:{{ s2 }} / 態度:{{ s3 }}
-      </div>
-    </td>
+            {{ render_stars(avg_score|int) }}
+            <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+              需求:{{ s1 }} / 驗收:{{ s2 }} / 態度:{{ s3 }}
+            </div>
+          </td>
 
-    <td>
-      <div style="font-style: italic; color: #444;">
-        {% if review.comment %}
-          {{ review.comment }}
-        {% else %}
-          <span style="color: #ccc;">(未填寫文字評論)</span>
-        {% endif %}
-      </div>
-    </td>
+          <td>
+            <div style="font-style: italic; color: #444;">
+              {% if review.comment %}
+              {{ review.comment }}
+              {% else %}
+              <span style="color: #ccc;">(未填寫文字評論)</span>
+              {% endif %}
+            </div>
+          </td>
 
-    <td style="font-size: 0.85em; color: #888;">
-      {% if review.created_at is string %}
-        {{ review.created_at[:10] }}
-      {% else %}
-        {{ review.created_at.strftime('%Y-%m-%d') }}
-      {% endif %}
-    </td>
-  </tr>
-  {% endfor %}
-</tbody>
-      </table>
+          <td style="font-size: 0.85em; color: #888;">
+            {% if review.created_at is string %}
+            {{ review.created_at[:10] }}
+            {% else %}
+            {{ review.created_at.strftime('%Y-%m-%d') }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
     {% else %}
       <div style="text-align: center; padding: 40px; color: #888;">
         <div style="font-size: 3em; margin-bottom: 10px;">💭</div>

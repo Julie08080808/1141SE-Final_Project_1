@@ -179,11 +179,260 @@
     margin-left: 10px;
   }
 
-  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-  .modal-card { background: white; width: 500px; max-height: 80vh; padding: 30px; border-radius: 15px; position: relative; display: flex; flex-direction: column; }
-  .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #aaa; }
-  .reviews-list { overflow-y: auto; flex: 1; margin-top: 15px; border-top: 1px solid #eee; }
+/* 🆕 Modal 彈窗樣式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-card {
+  background: white;
+  width: 500px;
+  max-height: 85vh;      
+  border-radius: 15px;
+  position: relative;
+  overflow-y: auto;      
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s;
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  background: linear-gradient(135deg, var(--theme-red), #ff7b9d);
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+}
+
+.modal-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 3px solid white;
+  margin-bottom: 8px;
+}
+
+.modal-name {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.modal-score {
+  font-size: 2.5em;
+  font-weight: bold;
+  margin: 5px 0 3px;
+}
+
+.modal-stars {
+  color: #ffd700;
+  font-size: 1.2em;
+}
+
+.modal-count {
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+.close-modal {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 28px;
+  cursor: pointer;
+  color: white;
+  opacity: 0.8;
+  transition: opacity 0.3s;
+}
+
+.close-modal:hover {
+  opacity: 1;
+}
+
+.modal-body {
+  padding: 25px 30px;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+/* 🆕 三維度評分區 */
+.score-breakdown {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.score-breakdown h4 {
+  margin-top: 0;
+  color: var(--theme-red);
+  font-size: 1.1em;
+  margin-bottom: 15px;
+}
+
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.score-label {
+  font-size: 0.9em;
+  color: #666;
+  min-width: 90px;
+}
+
+.score-value {
+  font-weight: bold;
+  color: var(--theme-red);
+  font-size: 1.1em;
+  min-width: 30px;
+  text-align: right;
+}
+
+.score-bar {
+  flex: 1;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin: 0 10px;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--theme-red), #ff7b9d);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* 🆕 評論列表 */
+.reviews-section h4 {
+  margin-top: 0;
+  color: var(--text);
+  font-size: 1.1em;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.review-item {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 15px 0;
+}
+
+.review-item:last-child {
+  border-bottom: none;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.review-project {
+  font-weight: bold;
+  color: var(--text);
+}
+
+.review-date {
+  color: #999;
+}
+
+.review-stars {
+  color: #f1c40f;
+  font-size: 1em;
+  margin-bottom: 8px;
+}
+
+.review-comment {
+  color: #555;
+  font-style: italic;
+  line-height: 1.6;
+  background: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  border-left: 3px solid var(--theme-red);
+}
+
+.empty-state {
+  text-align: center;
+  color: #999;
+  padding: 30px;
+  font-size: 0.95em;
+}
+
+/* 🆕 展開/收合按鈕 */
+.expand-button {
+  text-align: center;
+  padding: 12px;
+  margin-top: 10px;
+  color: var(--theme-red);
+  font-weight: bold;
+  cursor: pointer;
+  border-top: 1px solid #f0f0f0;
+  transition: background 0.3s;
+  user-select: none;
+}
+
+.expand-button:hover {
+  background: #fff4f7;
+}
+
+/* 🆕 表格中的星星樣式 */
+.rating-stars {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.rating-stars i {
+  color: #ffd700;  /* 金色 */
+  font-size: 1em;
+}
+
+.rating-stars .far {
+  color: #ddd;  /* 空心星用淡灰色 */
+}
+
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
@@ -235,7 +484,7 @@
             <div style="display: flex; align-items: center; gap: 10px;">
               <img src="https://ui-avatars.com/api/?name={{ bid.contractor_name }}&background=random" 
               style="width: 35px; height: 35px; border-radius: 50%;">
-              <a href="/profile/{{ bid.contractor_id }}" target="_blank" 
+              <a href="/profile/{{ bid.contractor_id }}"  
                 style="font-weight: 500; color: #333; text-decoration: none; border-bottom: 1px dotted #999; transition: color 0.2s;">
                 {{ bid.contractor_name.strip() }} ↗
               </a>
@@ -243,47 +492,71 @@
           </td>
           <td>
             {% set score = bid.contractor_avg_score if bid.contractor_avg_score else 0 %}
-            <div style="display: flex; align-items: center; gap: 5px;">
-              <span style="color: #f1c40f; font-weight: bold;">★ {{ "%.1f"|format(score) }}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <!-- 🆕 使用五顆星顯示 -->
+              <span class="rating-stars">
+              {% set full_stars = (score | int) %}
+              {% set has_half = ((score % 1) >= 0.5) %}
+              {% set empty_stars = 5 - full_stars - (1 if has_half else 0) %}
+      
+              {# 完整星星 #}
+              {% for i in range(full_stars) %}
+                <i class="fas fa-star"></i>
+              {% endfor %}
+      
+              {# 半星 #}
+
+              {% if has_half %}
+                <i class="fas fa-star-half-alt"></i>
+              {% endif %}
+      
+              {# 空心星 #}
+              {% for i in range(empty_stars) %}
+                <i class="far fa-star"></i>
+              {% endfor %}
+              </span>
+
+              <span style="color: #666; font-size: 0.9em;">{{ "%.1f"|format(score) }}</span>
+
               <button type="button" 
                     onclick="showReputationModal('{{ bid.contractor_id }}', '{{ bid.contractor_name }}')"
                     style="font-size: 0.8em; padding: 2px 8px; border: 1px solid #ddd; background: white; border-radius: 12px; cursor: pointer; color: #666;">
                  詳情
               </button>
-            </div>
-          </td>
-          <td>${{ "%.2f"|format(bid.price) }}</td>
-          <td>{{ bid.message }}</td>
+              </div>
+            </td>
+            <td>${{ "%.2f"|format(bid.price) }}</td>
+            <td>{{ bid.message }}</td>
 
-          <td>
-            {% if bid.proposal_url %}
+            <td>
+              {% if bid.proposal_url %}
               <a href="{{ bid.proposal_url }}" target="_blank" style="color: var(--theme-red); font-weight: bold;">
                 📄 下載
               </a>
-            {% else %}
+              {% else %}
               <span style="color: #999;">(無)</span>
-            {% endif %}
-          </td>
+              {% endif %}
+            </td>
 
-          <td>{{ bid.status.strip() }}</td>
-          <td>
-            {% if bid.status.strip() == 'pending' and project.status.strip() == 'open' %}
-              <form action="/client/project/{{ project.id }}/select/{{ bid.id }}" method="post" style="margin:0;">
+            <td>{{ bid.status.strip() }}</td>
+            <td>
+              {% if bid.status.strip() == 'pending' and project.status.strip() == 'open' %}
+                <form action="/client/project/{{ project.id }}/select/{{ bid.id }}" method="post" style="margin:0;">
                 <button type="submit">選擇此報價</button>
-              </form>
-            {% elif bid.status.strip() == 'accepted' %}
-              <strong>✅ 已得標</strong>
-            {% elif bid.status.strip() == 'rejected' %}
-              (未得標)
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p style="color:#888;">這個專案目前還沒有人報價。</p>
-  {% endif %}
+                </form>
+              {% elif bid.status.strip() == 'accepted' %}
+                <strong>✅ 已得標</strong>
+              {% elif bid.status.strip() == 'rejected' %}
+                (未得標)
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <p style="color:#888;">這個專案目前還沒有人報價。</p>
+      {% endif %}
 
   {% if project.status.strip() in ['submitted', 'completed', 'in_progress'] %}
   <h2>📦 交付的檔案</h2>
@@ -339,7 +612,75 @@
     </button>
   </div>
 </main>
+<!-- 🆕 評價詳情彈窗 Modal -->
+<div id="reputationModal" class="modal-overlay">
+  <div class="modal-card">
+    <span class="close-modal" onclick="closeReputationModal()">&times;</span>
+    
+    <div class="modal-header">
+      <img id="modal-avatar" class="modal-avatar" src="" alt="Avatar">
+      <div class="modal-name" id="modal-name">載入中...</div>
+      <div class="modal-score" id="modal-score">-</div>
+      <div class="modal-stars">★★★★★</div>
+      <div class="modal-count">(<span id="modal-count">0</span> 則評價)</div>
+    </div>
+    
+    <div class="modal-body">
+      <!-- 🆕 三維度評分 -->
+      <div class="score-breakdown">
+        <h4>📊 評分細項</h4>
+        <div class="score-row">
+          <span class="score-label">產出品質</span>
+          <div class="score-bar">
+            <div class="score-fill" id="score-bar-1" style="width: 0%"></div>
+          </div>
+          <span class="score-value" id="score-1">-</span>
+        </div>
+        <div class="score-row">
+          <span class="score-label">執行效率</span>
+          <div class="score-bar">
+            <div class="score-fill" id="score-bar-2" style="width: 0%"></div>
+          </div>
+          <span class="score-value" id="score-2">-</span>
+        </div>
+        <div class="score-row">
+          <span class="score-label">合作態度</span>
+          <div class="score-bar">
+            <div class="score-fill" id="score-bar-3" style="width: 0%"></div>
+          </div>
+          <span class="score-value" id="score-3">-</span>
+        </div>
+      </div>
+      
+      <!-- 🆕 最近評價 -->
+      <div class="reviews-section">
+        <h4>📝 最近評價</h4>
+        <div id="modal-reviews-list">
+          <div class="empty-state">載入中...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
+// 🆕 新增：根據分數渲染星星
+function renderStars(score) {
+    const fullStars = Math.floor(score);
+    const hasHalf = (score % 1) >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+    
+    let starsHTML = '';
+    starsHTML += '<i class="fas fa-star"></i>'.repeat(fullStars);
+    
+    if (hasHalf) {
+        starsHTML += '<i class="fas fa-star-half-alt"></i>';
+    }
+    
+    starsHTML += '<i class="far fa-star"></i>'.repeat(emptyStars);
+    
+    return starsHTML;
+}
+
 async function showReputationModal(userId, userName) {
     const modal = document.getElementById('reputationModal');
     modal.style.display = 'flex';
@@ -348,6 +689,13 @@ async function showReputationModal(userId, userName) {
     document.getElementById('modal-name').innerText = userName;
     document.getElementById('modal-avatar').src = `https://ui-avatars.com/api/?name=${userName}&background=random&size=128`;
     document.getElementById('modal-reviews-list').innerHTML = '<p style="text-align: center; color: #999; margin-top: 20px;">載入中...</p>';
+    // 🆕 新增這段（重置評分顯示）
+    document.getElementById('score-1').innerText = '-';
+    document.getElementById('score-2').innerText = '-';
+    document.getElementById('score-3').innerText = '-';
+    document.getElementById('score-bar-1').style.width = '0%';
+    document.getElementById('score-bar-2').style.width = '0%';
+    document.getElementById('score-bar-3').style.width = '0%';
 
     try {
         // 呼叫我們剛剛在 client.py 寫的 API
@@ -358,6 +706,22 @@ async function showReputationModal(userId, userName) {
         document.getElementById('modal-score').innerText = data.stats.avg_score;
         document.getElementById('modal-count').innerText = data.stats.total_count;
 
+        // 🆕 更新星星顯示
+        const starsElement = document.querySelector('.modal-stars');
+        starsElement.innerHTML = renderStars(data.stats.avg_score);
+
+        // 🆕 新增這段（更新三維度評分）
+        document.getElementById('score-1').innerText = data.stats.avg_score_1;
+        document.getElementById('score-2').innerText = data.stats.avg_score_2;
+        document.getElementById('score-3').innerText = data.stats.avg_score_3;
+
+        // 🆕 新增這段（更新進度條，加上延遲讓動畫更明顯）
+        setTimeout(() => {
+            document.getElementById('score-bar-1').style.width = (data.stats.avg_score_1 / 5 * 100) + '%';
+            document.getElementById('score-bar-2').style.width = (data.stats.avg_score_2 / 5 * 100) + '%';
+            document.getElementById('score-bar-3').style.width = (data.stats.avg_score_3 / 5 * 100) + '%';
+        }, 100);
+
         // 渲染列表
         const listContainer = document.getElementById('modal-reviews-list');
         listContainer.innerHTML = '';
@@ -365,28 +729,116 @@ async function showReputationModal(userId, userName) {
         if (data.reviews.length === 0) {
             listContainer.innerHTML = '<p style="text-align: center; color: #999; margin-top: 20px;">尚無評價紀錄。</p>';
         } else {
-            data.reviews.forEach(review => {
-                const avg = ((review.score_1 + review.score_2 + review.score_3) / 3).toFixed(1);
-                const dateStr = review.created_at.substring(0, 10);
-                
-                const item = document.createElement('div');
-                item.style.borderBottom = '1px solid #f0f0f0';
-                item.style.padding = '15px 0';
-                item.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; font-size:0.9em; color:#666;">
-                        <strong>${review.project_title}</strong>
-                        <span>${dateStr}</span>
-                    </div>
-                    <div style="margin: 5px 0; color: #f1c40f;">★ ${avg}</div>
-                    <div style="color: #333; font-style: italic;">"${review.comment || '無文字評論'}"</div>
-                `;
-                listContainer.appendChild(item);
-            });
+          // 🆕 判斷是否需要「展開」按鈕
+          const totalReviews = data.reviews.length;
+          const showExpandButton = totalReviews > 3;
+    
+          // 🆕 先顯示前 3 則
+          const initialReviews = data.reviews.slice(0, 3);
+    
+          initialReviews.forEach(review => {
+            const avg = ((review.score_1 + review.score_2 + review.score_3) / 3).toFixed(1);
+            const dateStr = review.created_at.substring(0, 10);
+        
+            const item = document.createElement('div');
+            item.className = 'review-item';
+            item.innerHTML = `
+                <div class="review-header">
+                    <span class="review-project">${review.project_title}</span>
+                    <span class="review-date">${dateStr}</span>
+                </div>
+                <div class="review-stars">★ ${avg} <span style="color: #999; font-size: 0.85em;">(${review.score_1} / ${review.score_2} / ${review.score_3})</span></div>
+                <div class="review-comment">"${review.comment || '對方未留下文字評論'}"</div>
+              `;
+              listContainer.appendChild(item);
+        });
+    
+        // 🆕 如果評價超過 3 則，顯示「展開」按鈕
+        if (showExpandButton) {
+            const expandBtn = document.createElement('div');
+            expandBtn.id = 'expand-reviews-btn';
+            expandBtn.className = 'expand-button';
+            expandBtn.innerHTML = `查看全部 ${totalReviews} 則評價 ▼`;
+            expandBtn.onclick = function() {
+              toggleReviews(data.reviews, listContainer);
+            };
+            listContainer.appendChild(expandBtn);
         }
+      }
 
     } catch (error) {
         console.error("Error:", error);
         document.getElementById('modal-reviews-list').innerHTML = '<p style="color: red; text-align: center;">載入失敗</p>';
+    }
+}
+
+// 🆕 展開/收合評價列表
+function toggleReviews(allReviews, container) {
+    const btn = document.getElementById('expand-reviews-btn');
+    const isExpanded = btn.classList.contains('expanded');
+    
+    if (isExpanded) {
+        // 🔼 收合：只顯示前 3 則
+        container.innerHTML = '';
+        
+        const initialReviews = allReviews.slice(0, 3);
+        initialReviews.forEach(review => {
+            const avg = ((review.score_1 + review.score_2 + review.score_3) / 3).toFixed(1);
+            const dateStr = review.created_at.substring(0, 10);
+            
+            const item = document.createElement('div');
+            item.className = 'review-item';
+            item.innerHTML = `
+                <div class="review-header">
+                    <span class="review-project">${review.project_title}</span>
+                    <span class="review-date">${dateStr}</span>
+                </div>
+                <div class="review-stars">★ ${avg} <span style="color: #999; font-size: 0.85em;">(${review.score_1} / ${review.score_2} / ${review.score_3})</span></div>
+                <div class="review-comment">"${review.comment || '對方未留下文字評論'}"</div>
+            `;
+            container.appendChild(item);
+        });
+        
+        // 重新加入按鈕
+        const expandBtn = document.createElement('div');
+        expandBtn.id = 'expand-reviews-btn';
+        expandBtn.className = 'expand-button';
+        expandBtn.innerHTML = `查看全部 ${allReviews.length} 則評價 ▼`;
+        expandBtn.onclick = function() {
+            toggleReviews(allReviews, container);
+        };
+        container.appendChild(expandBtn);
+        
+    } else {
+        // 🔽 展開：顯示全部評價
+        container.innerHTML = '';
+        
+        allReviews.forEach(review => {
+            const avg = ((review.score_1 + review.score_2 + review.score_3) / 3).toFixed(1);
+            const dateStr = review.created_at.substring(0, 10);
+            
+            const item = document.createElement('div');
+            item.className = 'review-item';
+            item.innerHTML = `
+                <div class="review-header">
+                    <span class="review-project">${review.project_title}</span>
+                    <span class="review-date">${dateStr}</span>
+                </div>
+                <div class="review-stars">★ ${avg} <span style="color: #999; font-size: 0.85em;">(${review.score_1} / ${review.score_2} / ${review.score_3})</span></div>
+                <div class="review-comment">"${review.comment || '對方未留下文字評論'}"</div>
+            `;
+            container.appendChild(item);
+        });
+        
+        // 重新加入按鈕（變成收合）
+        const collapseBtn = document.createElement('div');
+        collapseBtn.id = 'expand-reviews-btn';
+        collapseBtn.className = 'expand-button expanded';
+        collapseBtn.innerHTML = `收起評價 ▲`;
+        collapseBtn.onclick = function() {
+            toggleReviews(allReviews, container);
+        };
+        container.appendChild(collapseBtn);
     }
 }
 
@@ -399,6 +851,20 @@ window.onclick = function(e) {
         closeReputationModal();
     }
 }
+
+window.onclick = function(e) {
+    if (e.target === document.getElementById('reputationModal')) {
+        closeReputationModal();
+    }
+}
+
+// 🆕 新增這段（ESC 鍵關閉）
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeReputationModal();
+    }
+});
+
 </script>
 </body>
 </html>

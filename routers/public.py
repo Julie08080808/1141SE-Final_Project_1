@@ -184,7 +184,7 @@ async def get_history_page(
     )
 
 
-# 👤 路由: 查看使用者個人公開主頁
+# 👤 路由: 查看使用者評價
 @router.get("/profile/{target_user_id}", response_class=HTMLResponse)
 async def view_user_profile(
     target_user_id: int,
@@ -203,10 +203,23 @@ async def view_user_profile(
     # 3. 取得詳細評論列表
     reviews = await crud.get_user_received_reviews_public(conn, target_user_id)
 
-    return templates.TemplateResponse("user_profile.html", {
+    # 4. 🆕 取得排名資料
+    ranking = await crud.get_user_ranking(
+        conn, 
+        target_user_id, 
+        target_user['user_type'].strip()
+    )
+    
+    # 5. 🆕 取得活躍度
+    activity = await crud.get_user_activity_score(conn, target_user_id)
+
+    return templates.TemplateResponse("review.html", {
         "request": request,
         "user": user,           # 當前登入者 (為了顯示 Header)
         "target_user": target_user, # 被查看的人
         "stats": stats,
-        "reviews": reviews
+        "reviews": reviews,
+        "ranking": ranking,      # 🆕 新增
+        "activity": activity,    # 🆕 新增
+        "is_self": False
     })

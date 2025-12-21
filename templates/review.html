@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ target_user.name }} 的個人首頁 - 暨柴工作委託平台</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* 🌸 統一的 CSS 風格變數 */
+    :root {
+        --pink-light: #FFF8F9;
+        --pink-nav: #FEDFE5;
+        --pink-active-tab: #FDBDCB;
+        --theme-red: #FF5E7E;
+        --text: #333;
+        --text-light: #555;
+        --border-color: #EEE;
+        --white: #FFFFFF;
+        --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        --gold: #FFD700;
+    }
+
+    body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: var(--pink-light);
+        color: var(--text);
+        margin: 0;
+        padding-bottom: 50px;
+    }
+
+    /* 🌸 頂部導覽列 */
+    .top-header {
+      background-color: var(--pink-nav);
+      padding: 10px 30px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 80px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      position: sticky;   /* ✅ 新增 */
+      top: 0;             /* ✅ 新增 */
+      z-index: 100;      /* ✅ 新增 */
+    }
+
+    .logo-area { display: flex; align-items: center; gap: 10px; }
+    .logo-area img { width: 50px; height: 50px; border-radius: 8px; }
+    .logo-text { font-weight: bold; color: var(--text); font-size: 18px; }
+
+    .top-nav a {
+      margin: 0 15px; padding: 8px 18px; text-decoration: none;
+      color: var(--text-light); font-weight: 500; border-radius: 10px; transition: 0.3s;
+    }
+    .top-nav a:hover { background-color: var(--white); color: var(--theme-red); }
+    
+    .user-info { margin-left: auto; font-size: 16px; color: var(--text); }
+    .user-info a { color: var(--text-light); text-decoration: none; margin-left: 15px; }
+
+    /* ======================= */
+/* 📦 主容器 */
+/* ======================= */
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+/* ======================= */
+/* 📊 第一區：頭像 + 總評分 */
+/* ======================= */
+.profile-header {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+/* 👤 左側：頭像卡片 */
+.avatar-card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 40px 30px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar {
+    width: 150px; 
+    height: 150px; 
+    border-radius: 50%;
+    margin-bottom: 20px; 
+    border: 6px solid var(--pink-light);
+    object-fit: cover;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.user-name { 
+    font-size: 2em; 
+    font-weight: bold; 
+    margin: 0 0 15px 0; 
+    color: var(--text); 
+}
+
+.user-role-badge {
+    display: inline-block;
+    background-color: var(--pink-active-tab);
+    color: var(--theme-red);
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 1em;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+/* 📊 右側：總評分卡片 */
+.overall-score-card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.score-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.big-score {
+    font-size: 5em;
+    font-weight: bold;
+    color: var(--theme-red);
+    margin: 0;
+    line-height: 1;
+    letter-spacing: -4px;
+}
+
+.score-stars {
+    font-size: 2em;
+    color: var(--gold);
+    margin: 10px 0;
+    letter-spacing: 5px;
+}
+
+.total-reviews { 
+    color: #888; 
+    font-size: 1.1em; 
+    margin-top: 10px;
+}
+
+/* 三維度評分 */
+.dimension-scores {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.score-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.score-label { 
+    display: flex; 
+    justify-content: space-between; 
+    font-size: 1.05em; 
+    color: #666; 
+    font-weight: 600; 
+    align-items: center;
+}
+
+.score-label .label-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.score-label .score-value {
+    font-size: 1.2em;
+    color: var(--text);
+    font-weight: bold;
+}
+
+.progress-bg { 
+    background: #f0f0f0; 
+    height: 14px; 
+    border-radius: 7px; 
+    overflow: hidden; 
+    position: relative;
+}
+
+.progress-fill { 
+    background: linear-gradient(90deg, var(--theme-red), #ff8fa3);
+    height: 100%; 
+    border-radius: 7px; 
+    transition: width 1s ease;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* ======================= */
+/* 🏆 第二區：排名卡片 */
+/* ======================= */
+.ranking-section {
+    margin-bottom: 30px;
+}
+
+.ranking-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.rank-card {
+    background: var(--white);
+    border-radius: 15px;
+    padding: 30px 25px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s, box-shadow 0.3s;
+    border-top: 4px solid transparent;
+}
+
+.rank-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.rank-card.gold { border-top-color: #FFD700; }
+.rank-card.silver { border-top-color: #C0C0C0; }
+.rank-card.bronze { border-top-color: #CD7F32; }
+.rank-card.blue { border-top-color: #4A90E2; }
+
+.rank-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.rank-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: var(--theme-red);
+    margin: 10px 0;
+    line-height: 1;
+}
+
+.rank-label {
+    font-size: 1em;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.rank-description {
+    font-size: 0.9em;
+    color: #999;
+}
+
+/* ======================= */
+/* 💬 第三區：評論列表 */
+/* ======================= */
+.reviews-section {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: var(--shadow);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid var(--pink-nav);
+}
+
+.section-title {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.8em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.review-count-badge {
+    background: var(--pink-active-tab);
+    color: var(--theme-red);
+    padding: 8px 18px;
+    border-radius: 25px;
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.review-item {
+    border-bottom: 1px solid var(--border-color);
+    padding: 30px 0;
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 30px;
+}
+
+.review-item:last-child { border-bottom: none; }
+.review-item:first-child { padding-top: 0; }
+
+/* 左側：評論者資訊 */
+.review-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.review-date {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+    color: #999;
+}
+
+.reviewer-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.reviewer-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: 3px solid var(--pink-light);
+    object-fit: cover;
+}
+
+.reviewer-details {
+    flex: 1;
+}
+
+.reviewer-name {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.95em;
+    margin-bottom: 3px;
+}
+
+.reviewer-role {
+    font-size: 0.8em;
+    color: #aaa;
+}
+
+/* 右側：評論內容 */
+.review-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.project-link {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.3s;
+}
+
+.project-link:hover {
+    color: var(--theme-red);
+}
+
+.review-rating {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.star-display {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.star-display i {
+    color: var(--gold);
+    font-size: 1.2em;
+}
+
+.star-display .far {
+    color: #ddd;
+}
+
+.score-number {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--text);
+}
+
+.score-breakdown {
+    font-size: 0.9em;
+    color: #999;
+    background: #f8f8f8;
+    padding: 6px 14px;
+    border-radius: 20px;
+}
+    
+   .comment-box {
+    background-color: var(--pink-light);
+    padding: 20px;
+    border-radius: 12px;
+    color: #555;
+    line-height: 1.7;
+    font-style: italic;
+    border-left: 4px solid var(--theme-red);
+}
+
+.empty-state {
+    text-align: center;
+    color: #999;
+    padding: 80px 20px;
+}
+
+.empty-state .icon {
+    font-size: 5em;
+    margin-bottom: 20px;
+    opacity: 0.4;
+}
+
+.empty-state p {
+    font-size: 1.2em;
+    margin: 10px 0;
+}
+
+.empty-state .hint {
+    font-size: 0.95em;
+    color: #bbb;
+}
+
+.back-btn-container {
+    text-align: center;
+    margin-top: 40px;
+}
+
+.back-btn {
+    background-color: var(--theme-red);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 30px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(255, 94, 126, 0.2);
+}
+
+.back-btn:hover {
+    background-color: #e04d6a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(255, 94, 126, 0.3);
+}
+</style>
+</head>
+<body>
+
+<header class="top-header">
+  <div class="logo-area">
+    <img src="/工作平台.png" alt="平台Logo">
+    <div class="logo-text">work.ncnu</div>
+  </div>
+
+  <nav class="top-nav">
+    {% if user.user_type == 'client' %}
+      <a href="/client/dashboard">我的專案</a>
+      <a href="/history">歷史專案</a>
+      <a href="/client/my-reviews">收到評價</a>
+      <a href="/client/browse">公開招標專案</a>
+    {% else %}
+      <a href="/contractor/my-bids">我的專案</a>
+      <a href="/history">歷史紀錄</a>
+      <a href="/contractor/my-reviews">收到評價</a>
+      <a href="/contractor/dashboard">公開招標專案</a>
+    {% endif %}
+  </nav>
+
+  <div class="user-info">
+    {% if user.user_type == 'client' %}
+      你好委託人~ {{ user.name }} 🪸
+    {% else %} 
+      你好接案人~ {{ user.name }} 🐶
+    {% endif %}
+    <a href="/logout">登出</a>
+  </div>
+</header>
+
+<!-- 📦 主容器 -->
+<div class="page-container">
+
+    <!-- ======================= -->
+    <!-- 📊 第一區：頭像 + 總評分 -->
+    <!-- ======================= -->
+    <div class="profile-header">
+        
+        <!-- 👤 左側：頭像卡片 -->
+        <div class="avatar-card">
+            <img class="avatar" 
+                 src="https://ui-avatars.com/api/?name={{ target_user.name }}&background=random&size=300&color=fff" 
+                 alt="{{ target_user.name }}">
+            
+            <h1 class="user-name">{{ target_user.name }}</h1>
+            
+            <span class="user-role-badge">
+                {{ '🏆 優質接案人' if target_user.user_type == 'contractor' else '💼 優質委託人' }}
+            </span>
+        </div>
+
+        <!-- 📊 右側：總評分卡片 -->
+        <div class="overall-score-card">
+            <div class="score-header">
+                <div class="big-score">{{ stats.avg_score }}</div>
+                
+                <div class="score-stars">
+                    {% set full = (stats.avg_score | int) %}
+                    {% set has_half = ((stats.avg_score % 1) >= 0.5) %}
+                    {% for i in range(full) %}<i class="fas fa-star"></i>{% endfor %}{% if has_half %}<i class="fas fa-star-half-alt"></i>{% endif %}{% for i in range(5 - full - (1 if has_half else 0)) %}<i class="far fa-star"></i>{% endfor %}
+                </div>
+                
+                <div class="total-reviews">
+                    基於 {{ stats.total_count }} 則評價
+                </div>
+            </div>
+
+            <!-- 三維度評分 -->
+            <div class="dimension-scores">
+                {% if target_user.user_type == 'contractor' %}
+                    <!-- 接案人的評分項目 -->
+                    <div class="score-item">
+                        <div class="score-label">
+                            <span class="label-text">
+                                <i class="fas fa-gem" style="color: #9b59b6;"></i>
+                                產出品質
+                            </span>
+                            <span class="score-value">{{ stats.avg_score_1 }}</span>
+                        </div>
+                        {% set width_1 = ((stats.avg_score_1 | float / 5) * 100) | round(1) %}
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: {{ width_1 }}%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="score-item">
+                        <div class="score-label">
+                            <span class="label-text">
+                                <i class="fas fa-bolt" style="color: #f39c12;"></i>
+                                執行效率
+                            </span>
+                            <span class="score-value">{{ stats.avg_score_2 }}</span>
+                        </div>
+                        {% set width_2 = ((stats.avg_score_2 | float / 5) * 100) | round(1) %}
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: {{ width_2 }}%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="score-item">
+                        <div class="score-label">
+                            <span class="label-text">
+                                <i class="fas fa-handshake" style="color: #3498db;"></i>
+                                合作態度
+                            </span>
+                            <span class="score-value">{{ stats.avg_score_3 }}</span>
+                        </div>
+                        {% set width_3 = ((stats.avg_score_3 | float / 5) * 100) | round(1) %}
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: {{ width_3 }}%;"></div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- 委託人的評分項目 -->
+                    <div class="score-item">
+                        <div class="score-label">
+                            <span class="label-text">
+                                <i class="fas fa-clipboard-check" style="color: #27ae60;"></i>
+                                需求合理性
+                            </span>
+                            <span class="score-value">{{ stats.avg_score_1 }}</span>
+                        </div>
+                        {% set width_1 = ((stats.avg_score_1 | float / 5) * 100) | round(1) %}
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: {{ width_1 }}%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="score-item">
+                        <div class="score-label">
+                            <span class="label-text">
+                                <i class="fas fa-check-circle" style="color: #e74c3c;"></i>
+                                驗收難度
+                            </span>
+                            <span class="score-value">{{ stats.avg_score_2 }}</span>
+                        </div>
+                        {% set width_2 = ((stats.avg_score_2 | float / 5) * 100) | round(1) %}
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: {{ width_2 }}%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="score-item">
+                        <div class="score-label">
+                            <span class="label-text">
+                                <i class="fas fa-handshake" style="color: #3498db;"></i>
+                                合作態度
+                            </span>
+                            <span class="score-value">{{ stats.avg_score_3 }}</span>
+                        </div>
+                        {% set width_3 = ((stats.avg_score_3 | float / 5) * 100) | round(1) %}
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: {{ width_3 }}%;"></div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================= -->
+    <!-- 🏆 第二區：排名卡片 -->
+    <!-- ======================= -->
+    <div class="ranking-section">
+        <div class="ranking-cards">
+            
+            <!-- 排名卡片 1：整體排名 -->
+            <div class="rank-card gold">
+                <div class="rank-icon">🏆</div>
+                <div class="rank-number">
+                    {% if ranking and ranking.rank %}
+                        #{{ ranking.rank }}
+                    {% else %}
+                        --
+                    {% endif %}
+                </div>
+                <div class="rank-label">平台整體排名</div>
+                <div class="rank-description">
+                    {% if ranking and ranking.total_users %}
+                        在 {{ ranking.total_users }} 位用戶中
+                    {% else %}
+                        尚無排名資料
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 排名卡片 2：信用評等 -->
+            <div class="rank-card silver">
+                <div class="rank-icon">⭐</div>
+                <div class="rank-number">
+                    {% if ranking and ranking.percentile %}
+                        Top {{ ranking.percentile | round | int }}%
+                    {% else %}
+                        --
+                    {% endif %}
+                </div>
+                <div class="rank-label">信用評等</div>
+                <div class="rank-description">
+                    {% if ranking and ranking.percentile %}
+                        超越 {{ (100 - ranking.percentile) | round | int }}% 用戶
+                    {% else %}
+                        尚無評等資料
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 排名卡片 3：完成專案數 -->
+            <div class="rank-card bronze">
+                <div class="rank-icon">✅</div>
+                <div class="rank-number">{{ stats.total_count }}</div>
+                <div class="rank-label">完成專案</div>
+                <div class="rank-description">累計評價數</div>
+            </div>
+
+            <!-- 排名卡片 4：活躍度 -->
+            <div class="rank-card blue">
+                <div class="rank-icon">🔥</div>
+                <div class="rank-number">
+                    {% if activity and activity.activity_score %}
+                        {{ activity.activity_score | int }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </div>
+                <div class="rank-label">活躍指數</div>
+                <div class="rank-description">
+                    {% if activity and activity.recent_reviews %}
+                        近 30 天 {{ activity.recent_reviews }} 則評價
+                    {% else %}
+                        近 30 天無活動
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ======================= -->
+    <!-- 💬 第三區：評論列表 -->
+    <!-- ======================= -->
+    <div class="reviews-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-comments"></i>
+                詳細評價紀錄
+            </h2>
+            <span class="review-count-badge">{{ stats.total_count }} 則評價</span>
+        </div>
+
+        {% if reviews %}
+        <div class="review-list">
+            {% for review in reviews %}
+            <div class="review-item">
+                
+                <!-- 左側：評論者資訊 -->
+                <div class="review-meta">
+                    <div class="review-date">
+                        <i class="far fa-calendar-alt"></i>
+                        {% if review.created_at is string %}
+                            {{ review.created_at[:10] }}
+                        {% else %}
+                            {{ review.created_at.strftime('%Y-%m-%d') }}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="reviewer-info">
+                        <img class="reviewer-avatar" 
+                             src="https://ui-avatars.com/api/?name={{ review.reviewer_name }}&background=random&size=90&color=fff" 
+                             alt="{{ review.reviewer_name }}">
+                        <div class="reviewer-details">
+                            <div class="reviewer-name">{{ review.reviewer_name }}</div>
+                            <div class="reviewer-role">評論者</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：評論內容 -->
+                <div class="review-content">
+                    <a href="/project/{{ review.project_id }}" class="project-link">
+                        <i class="fas fa-folder-open"></i>
+                        {{ review.project_title }}
+                    </a>
+                    
+                    {% set s1 = review.score_1|default(0)|int %}
+                    {% set s2 = review.score_2|default(0)|int %}
+                    {% set s3 = review.score_3|default(0)|int %}
+                    {% set avg = ((s1 + s2 + s3) / 3) | round(1) %}
+                    
+                    <div class="review-rating">
+                        <div class="star-display">
+                            {% set full_stars = (avg | int) %}
+                            {% set has_half = ((avg % 1) >= 0.5) %}
+                            {% set empty_stars = 5 - full_stars - (1 if has_half else 0) %}
+                            
+                            {% for i in range(full_stars) %}
+                                <i class="fas fa-star"></i>
+                            {% endfor %}
+                            
+                            {% if has_half %}
+                                <i class="fas fa-star-half-alt"></i>
+                            {% endif %}
+                            
+                            {% for i in range(empty_stars) %}
+                                <i class="far fa-star"></i>
+                            {% endfor %}
+                        </div>
+                        
+                        <span class="score-number">{{ avg }}</span>
+                        
+                        <span class="score-breakdown">
+                            細項: {{ s1 }} / {{ s2 }} / {{ s3 }}
+                        </span>
+                    </div>
+
+                    <div class="comment-box">
+                        {{ review.comment if review.comment else '對方未留下文字評論' }}
+                    </div>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>此使用者尚未收到任何評價</p>
+            <p class="hint">完成專案後會顯示評價紀錄</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 🔙 返回按鈕 -->
+    <div class="back-btn-container">
+        <button onclick="window.history.back()" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            返回上一頁
+        </button>
+    </div>
+
+</div>
+</body>
+</html>
