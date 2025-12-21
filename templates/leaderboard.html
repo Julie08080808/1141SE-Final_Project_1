@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏆 排行榜 - 暨柴工作委託平台</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    :root {
+        --pink-light: #FFF8F9;
+        --pink-nav: #FEDFE5;
+        --pink-active-tab: #FDBDCB;
+        --theme-red: #FF5E7E;
+        --text: #333;
+        --text-light: #555;
+        --border-color: #EEE;
+        --white: #FFFFFF;
+        --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        --gold: #FFD700;
+        --silver: #C0C0C0;
+        --bronze: #CD7F32;
+    }
+
+    body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: var(--pink-light);
+        color: var(--text);
+        margin: 0;
+        padding-bottom: 50px;
+    }
+
+    /* 頂部導覽列 */
+    .top-header {
+        background-color: var(--pink-nav);
+        padding: 10px 30px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 40px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .logo-area { display: flex; align-items: center; gap: 10px; }
+    .logo-area img { width: 50px; height: 50px; border-radius: 8px; }
+    .logo-text { font-weight: bold; color: var(--text); font-size: 18px; }
+
+    .top-nav a {
+        margin: 0 15px; padding: 8px 18px; text-decoration: none;
+        color: var(--text-light); font-weight: 500; border-radius: 10px; transition: 0.3s;
+    }
+    .top-nav a.active, .top-nav a:hover {
+        background-color: var(--white);
+        color: var(--theme-red);
+    }
+
+    .user-info { margin-left: auto; font-size: 16px; color: var(--text); }
+    .user-info a { color: var(--text-light); text-decoration: none; margin-left: 15px; }
+
+    /* 主容器 */
+    .page-container {
+        max-width: 1400px;
+        margin: 30px auto;
+        padding: 0 20px;
+    }
+
+    .page-title {
+        text-align: center;
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        color: var(--text);
+    }
+
+    .page-subtitle {
+        text-align: center;
+        color: var(--text-light);
+        margin-bottom: 40px;
+        font-size: 1.1em;
+    }
+
+    /* 🆕 角色切換按鈕 */
+    .role-switch {
+        display: flex;
+        justify-content: flex-start;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .role-btn {
+        padding: 10px 24px;
+        border: 2px solid var(--theme-red);
+        background-color: var(--white);
+        color: var(--theme-red);
+        border-radius: 20px;
+        font-size: 0.95em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .role-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 94, 126, 0.3);
+    }
+    
+    .role-btn.active {
+        background-color: var(--theme-red);
+        color: var(--white);
+    }
+
+    /* 排行榜容器 */
+    .leaderboard-container {
+        display: grid;
+        grid-template-columns: 500px 1fr;
+        gap: 30px;
+        align-items: start;
+    }
+
+    /* 左側:頒獎台 */
+    .podium-section {
+        background: var(--white);
+        border-radius: 20px;
+        padding: 40px 30px;
+        box-shadow: var(--shadow);
+    }
+
+    .podium-title {
+        text-align: center;
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-bottom: 30px;
+        color: var(--text);
+    }
+
+    .podium {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 40px;
+    }
+
+    .podium-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+    }
+
+    .podium-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin-bottom: 10px;
+        object-fit: cover;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        position: relative;
+        z-index: 2;
+    }
+
+    .podium-item.first .podium-avatar {
+        width: 100px;
+        height: 100px;
+        border: 5px solid var(--gold);
+    }
+
+    .podium-item.second .podium-avatar {
+        border: 4px solid var(--silver);
+    }
+
+    .podium-item.third .podium-avatar {
+        border: 4px solid var(--bronze);
+    }
+
+    .podium-crown {
+        position: absolute;
+        top: -15px;
+        font-size: 2em;
+        z-index: 3;
+    }
+
+    .podium-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+        font-size: 0.95em;
+        text-align: center;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .podium-score {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: var(--theme-red);
+        margin-bottom: 10px;
+    }
+
+    .podium-base {
+        width: 120px;
+        background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+        border-radius: 10px 10px 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3em;
+        font-weight: bold;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        position: relative;
+    }
+
+    .podium-item.first .podium-base {
+        height: 180px;
+        background: linear-gradient(135deg, var(--gold), #FFA500);
+    }
+
+    .podium-item.second .podium-base {
+        height: 140px;
+        background: linear-gradient(135deg, var(--silver), #A8A8A8);
+    }
+
+    .podium-item.third .podium-base {
+        height: 100px;
+        background: linear-gradient(135deg, var(--bronze), #8B4513);
+    }
+
+    /* 右側:排名列表 */
+    .ranking-section {
+        background: var(--white);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: var(--shadow);
+    }
+
+    .ranking-title {
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .ranking-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    /* 🆕 表格標題列 */
+    .ranking-header {
+        display: grid;
+        grid-template-columns: 60px 60px 1fr 100px 80px;
+        align-items: center;
+        padding: 15px;
+        background: linear-gradient(to right, #FF6B8A, #FF8FA3);
+        font-weight: 600;
+        color: var(--white);
+        border-radius: 10px 10px 0 0;
+    }
+
+    .ranking-header-item {
+        text-align: center;
+        font-size: 0.9em;
+    }
+
+    .ranking-header-item:nth-child(3) {
+        text-align: left;
+        padding-left: 10px;
+    }
+
+    .ranking-item {
+        display: grid;
+        grid-template-columns: 60px 60px 1fr 100px 80px;
+        align-items: center;
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.3s;
+    }
+
+    .ranking-item:hover {
+        background-color: var(--pink-light);
+    }
+
+    .ranking-item.highlight {
+        background-color: #FFE8ED;
+        border-left: 4px solid var(--theme-red);
+        font-weight: bold;
+    }
+
+    .rank-number {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: var(--text-light);
+        text-align: center;
+    }
+
+    .rank-number.top3 {
+        color: var(--theme-red);
+    }
+
+    .rank-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--border-color);
+    }
+
+    .rank-name {
+        font-size: 1em;
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rank-score {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: var(--theme-red);
+        text-align: center;
+    }
+
+    .rank-reviews {
+        font-size: 0.9em;
+        color: var(--text-light);
+        text-align: center;
+    }
+
+    /* 我的排名卡片 */
+    .my-rank-card {
+        background: linear-gradient(135deg, var(--pink-light), #FFF8F9);
+        color: black;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(255, 94, 126, 0.3);
+    }
+
+    .my-rank-title {
+        font-size: 1.1em;
+        margin-bottom: 15px;
+        opacity: 0.9;
+    }
+
+    .my-rank-content {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .my-rank-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: 3px solid white;
+        object-fit: cover;
+    }
+
+    .my-rank-info {
+        flex: 1;
+    }
+
+    .my-rank-number {
+        font-size: 2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .my-rank-score {
+        font-size: 1.1em;
+        opacity: 0.95;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-light);
+    }
+
+    .empty-state i {
+        font-size: 4em;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+
+    @media (max-width: 1200px) {
+        .leaderboard-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+</head>
+<body>
+
+<header class="top-header">
+    <div class="logo-area">
+        <img src="/工作平台.png" alt="平台Logo">
+        <div class="logo-text">work.ncnu</div>
+    </div>
+
+    <nav class="top-nav">
+        {% if user.user_type == 'client' %}
+            <a href="/client/dashboard">我的專案</a>
+            <a href="/history">歷史專案</a>
+            <a href="/client/my-reviews">收到評價</a>
+            <a href="/client/browse">公開招標專案</a>
+            <a href="/leaderboard" class="active">排行榜</a>
+        {% else %}
+            <a href="/contractor/my-bids">我的專案</a>
+            <a href="/history">歷史紀錄</a>
+            <a href="/contractor/my-reviews">收到評價</a>
+            <a href="/contractor/dashboard">公開招標專案</a>
+            <a href="/leaderboard" class="active">排行榜</a>
+        {% endif %}
+    </nav>
+
+    <div class="user-info">
+        {% if user.user_type == 'client' %}
+            你好~委託人 {{ user.name }} 🪸
+        {% else %}
+            你好~接案人 {{ user.name }} 🐶
+        {% endif %}
+        <a href="/logout">登出</a>
+    </div>
+</header>
+
+<div class="page-container">
+
+    {% if leaderboard and leaderboard|length > 0 %}
+    <div class="leaderboard-container">
+        
+        <!-- 左側:頒獎台 -->
+        <div class="podium-section">
+            <h2 class="podium-title">🥇 星級排名</h2>
+            
+            <div class="podium">
+                <!-- 第二名 -->
+                {% if leaderboard|length >= 2 %}
+                <div class="podium-item second">
+                    <img class="podium-avatar" 
+                         src="https://ui-avatars.com/api/?name={{ leaderboard[1].name }}&background=random&size=160&color=fff" 
+                         alt="{{ leaderboard[1].name }}">
+                    <div class="podium-name">{{ leaderboard[1].name }}</div>
+                    <div class="podium-score">{{ leaderboard[1].avg_score|round(1) }}</div>
+                    <div class="podium-base">2</div>
+                </div>
+                {% endif %}
+
+                <!-- 第一名 -->
+                {% if leaderboard|length >= 1 %}
+                <div class="podium-item first">
+                    <div class="podium-crown">👑</div>
+                    <img class="podium-avatar" 
+                         src="https://ui-avatars.com/api/?name={{ leaderboard[0].name }}&background=random&size=200&color=fff" 
+                         alt="{{ leaderboard[0].name }}">
+                    <div class="podium-name">{{ leaderboard[0].name }}</div>
+                    <div class="podium-score">{{ leaderboard[0].avg_score|round(1) }}</div>
+                    <div class="podium-base">1</div>
+                </div>
+                {% endif %}
+
+                <!-- 第三名 -->
+                {% if leaderboard|length >= 3 %}
+                <div class="podium-item third">
+                    <img class="podium-avatar" 
+                         src="https://ui-avatars.com/api/?name={{ leaderboard[2].name }}&background=random&size=160&color=fff" 
+                         alt="{{ leaderboard[2].name }}">
+                    <div class="podium-name">{{ leaderboard[2].name }}</div>
+                    <div class="podium-score">{{ leaderboard[2].avg_score|round(1) }}</div>
+                    <div class="podium-base">3</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 右側:排名列表 -->
+        <div class="ranking-section">
+            <!-- 🆕 角色切換按鈕 -->
+            <div class="role-switch">
+                <a href="/leaderboard?role=client" 
+                   class="role-btn {% if current_role == 'client' %}active{% endif %}">
+                    <i class="fas fa-briefcase"></i>
+                    委託人排行榜
+                </a>
+                <a href="/leaderboard?role=contractor" 
+                   class="role-btn {% if current_role == 'contractor' %}active{% endif %}">
+                    <i class="fas fa-hammer"></i>
+                    接案人排行榜
+                </a>
+            </div>
+
+            <h2 class="ranking-title">
+                <i class="fas fa-list-ol"></i>
+                完整排名 - {{ '委託人' if current_role == 'client' else '接案人' }}
+            </h2>
+
+            <!-- 我的排名卡片 - 只在查看自己角色時顯示 -->
+            {% if current_user_rank %}
+            <div class="my-rank-card">
+                <div class="my-rank-title">我的排名</div>
+                <div class="my-rank-content">
+                    <img class="my-rank-avatar" 
+                         src="https://ui-avatars.com/api/?name={{ user.name }}&background=random&size=120&color=fff" 
+                         alt="{{ user.name }}">
+                    <div class="my-rank-info">
+                        <div class="my-rank-number">#{{ current_user_rank.rank }}</div>
+                        <div class="my-rank-score">
+                            ⭐ {{ current_user_rank.avg_score|round(1) }} 分 
+                            ({{ current_user_rank.review_count }} 則評價)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 排名列表 -->
+            <div class="ranking-list">
+                <!-- 🆕 表格標題 -->
+                <div class="ranking-header">
+                    <div class="ranking-header-item">排名</div>
+                    <div class="ranking-header-item">頭像</div>
+                    <div class="ranking-header-item">姓名</div>
+                    <div class="ranking-header-item">平均分數</div>
+                    <div class="ranking-header-item">評價數</div>
+                </div>
+
+                {% for item in leaderboard %}
+                <div class="ranking-item {% if item.uid == user.uid %}highlight{% endif %}">
+                    <div class="rank-number {% if item.rank <= 3 %}top3{% endif %}">
+                        {{ item.rank }}
+                    </div>
+                    <img class="rank-avatar" 
+                         src="https://ui-avatars.com/api/?name={{ item.name }}&background=random&size=90&color=fff" 
+                         alt="{{ item.name }}">
+                    <div class="rank-name">
+                        {{ item.name }}
+                        {% if item.uid == user.uid %}<span style="color: var(--theme-red);"> (我)</span>{% endif %}
+                    </div>
+                    <div class="rank-score">{{ item.avg_score|round(1) }}</div>
+                    <div class="rank-reviews">{{ item.review_count }} 則</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-trophy"></i>
+        <p style="font-size: 1.2em; margin: 20px 0;">
+            目前還沒有{{ '委託人' if current_role == 'client' else '接案人' }}排行榜資料
+        </p>
+        <p>完成專案並獲得評價後,就會出現在排行榜上!</p>
+    </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

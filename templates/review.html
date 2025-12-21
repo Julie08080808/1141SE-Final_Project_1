@@ -35,7 +35,7 @@
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      gap: 80px;
+      gap: 40px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
       position: sticky;   /* ✅ 新增 */
       top: 0;             /* ✅ 新增 */
@@ -50,8 +50,8 @@
       margin: 0 15px; padding: 8px 18px; text-decoration: none;
       color: var(--text-light); font-weight: 500; border-radius: 10px; transition: 0.3s;
     }
+    .top-nav a.active,
     .top-nav a:hover { background-color: var(--white); color: var(--theme-red); }
-    
     .user-info { margin-left: auto; font-size: 16px; color: var(--text); }
     .user-info a { color: var(--text-light); text-decoration: none; margin-left: 15px; }
 
@@ -507,13 +507,15 @@
     {% if user.user_type == 'client' %}
       <a href="/client/dashboard">我的專案</a>
       <a href="/history">歷史專案</a>
-      <a href="/client/my-reviews">收到評價</a>
+      <a href="/client/my-reviews" class="active">收到評價</a>
       <a href="/client/browse">公開招標專案</a>
+      <a href="/leaderboard">排行榜</a>
     {% else %}
       <a href="/contractor/my-bids">我的專案</a>
       <a href="/history">歷史紀錄</a>
-      <a href="/contractor/my-reviews">收到評價</a>
+      <a href="/contractor/my-reviews" class="active">收到評價</a>
       <a href="/contractor/dashboard">公開招標專案</a>
+      <a href="/leaderboard">排行榜</a>
     {% endif %}
   </nav>
 
@@ -807,7 +809,11 @@
                         <span class="score-number">{{ avg }}</span>
                         
                         <span class="score-breakdown">
-                            細項: {{ s1 }} / {{ s2 }} / {{ s3 }}
+                            {% if target_user.user_type == 'contractor' %}
+                                產出品質: {{ s1 }} / 執行效率: {{ s2 }} / 合作態度: {{ s3 }}
+                            {% else %}
+                                需求合理性: {{ s1 }} / 驗收難度: {{ s2 }} / 合作態度: {{ s3 }}
+                            {% endif %}
                         </span>
                     </div>
 

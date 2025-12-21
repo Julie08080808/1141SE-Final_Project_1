@@ -493,9 +493,16 @@
         <div class="role-badge">💼 委託人</div>
       </div>
     </div>
-    <div class="score-summary">
+     <div class="score-summary">
       <div class="big-score">{{ client_stats.avg_score }}</div>
-      <div class="star-display">★★★★★</div>
+      <div class="star-display">
+        {% set avg_score = client_stats.avg_score | float %}
+        {% set full_stars = (avg_score | int) %}
+        {% set has_half = ((avg_score % 1) >= 0.5) %}
+        {% set empty_stars = 5 - full_stars - (1 if has_half else 0) %}
+        
+        {% for i in range(full_stars) %}★{% endfor %}{% if has_half %}⯨{% endif %}{% for i in range(empty_stars) %}☆{% endfor %}
+      </div>
       <div class="total-reviews">({{ client_stats.total_count }} 則評價)</div>
     </div>
     <div class="score-bars">

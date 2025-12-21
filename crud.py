@@ -777,3 +777,33 @@ async def get_user_activity_score(conn: Connection, user_id: int):
             'activity_score': int(result['activity_score']) if result['activity_score'] else 0,
             'recent_reviews': int(result['recent_reviews'])
         }
+    
+
+# ==========================================
+# 🏆 取得所有排名
+# ==========================================
+
+async def get_leaderboard(conn: Connection, user_type: str, limit: int = 50):
+    """
+    取得排行榜資料
+    user_type: 'client' 或 'contractor'
+    limit: 取前幾名
+    """
+    sql = """
+        SELECT 
+            u.uid,
+            u.name,
+            AVG((r.score_1 + r.score_2 + r.score_3) / 3.0) as avg_score,
+            COUNT(r.id) as review_count,
+            ROW_NUMBER() OVER (ORDER BY AVG((r.score_1 + r.score_2 + r.score_3) / 3.0) DESC) as rank
+        FROM users u
+        INNER JOIN reviews r ON u.uid = r.reviewee_id
+        WHERE u.user_type = %s
+        GROUP BY u.uid, u.name
+        HAVING COUNT(r.id) > 0
+        ORDER BY avg_score DESC
+        LIMIT %s
+    """
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(sql, (user_type, limit))
+        return await cur.fetchall()

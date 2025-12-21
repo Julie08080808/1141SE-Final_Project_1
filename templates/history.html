@@ -30,7 +30,7 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: 80px;
+  gap: 40px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
@@ -240,6 +240,7 @@
     {% else %}
       <a href="/contractor/dashboard">公開招標專案</a>
     {% endif %}
+    <a href="/leaderboard">排行榜</a>
   </nav>
     {% if user_type == 'client' %}
     <div class="user-info">

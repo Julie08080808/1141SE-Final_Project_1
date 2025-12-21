@@ -236,3 +236,46 @@ async def view_user_profile(
         "activity": activity,    # 🆕 新增
         "is_self": False
     })
+
+# 🏆 路由: 排行榜頁面（支援角色切換）
+@router.get("/leaderboard", response_class=HTMLResponse)
+async def view_leaderboard(
+    request: Request,
+    role: str = None,  # 新增：可選的角色參數
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    # 如果沒有指定 role，預設顯示使用者自己的角色
+    if role not in ['client', 'contractor']:
+        role = user["user_type"].strip()
+    
+    # 取得指定角色的排行榜資料（前50名）
+    leaderboard = await crud.get_leaderboard(conn, role, limit=50)
+    
+    # 找出當前使用者的排名（如果查看的是自己的角色）
+    current_user_rank = None
+    if role == user["user_type"].strip():
+        for item in leaderboard:
+            if item['uid'] == user['uid']:
+                current_user_rank = item
+                break
+        
+        # 如果使用者不在前50名，單獨查詢他的排名
+        if not current_user_rank:
+            ranking = await crud.get_user_ranking(conn, user['uid'], role)
+            if ranking and ranking['rank']:
+                current_user_rank = {
+                    'uid': user['uid'],
+                    'name': user['name'],
+                    'avg_score': ranking['avg_score'],
+                    'review_count': ranking['review_count'],
+                    'rank': ranking['rank']
+                }
+    
+    return templates.TemplateResponse("leaderboard.html", {
+        "request": request,
+        "user": user,
+        "leaderboard": leaderboard,
+        "current_user_rank": current_user_rank,
+        "current_role": role,  # 傳入當前顯示的角色
+    })
