@@ -143,7 +143,7 @@ app.mount("/", StaticFiles(directory="www"), name="static")
 
 
 
-# --- [ 5. 伺服器啟動 ] ---
+# --- [ 5. 伺服器啟動(沒用到) ] ---
 
 # *** 關鍵：用這個方式啟動 ***
 # 讓我們可以直接用 "python main.py" 執行
