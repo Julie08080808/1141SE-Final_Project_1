@@ -519,9 +519,9 @@
 
   <div class="user-info">
     {% if user.user_type == 'client' %}
-      你好委託人~ {{ user.name }} 🪸
+      你好~委託人 {{ user.name }} 🪸
     {% else %} 
-      你好接案人~ {{ user.name }} 🐶
+      你好~接案人 {{ user.name }} 🐶
     {% endif %}
     <a href="/logout">登出</a>
   </div>
