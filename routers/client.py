@@ -8,7 +8,7 @@
 
 # routers/client.py 
 from fastapi import APIRouter, Depends, Form, Request, HTTPException, status, File, UploadFile
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from psycopg import Connection
 from datetime import date
@@ -624,3 +624,48 @@ async def client_self_review_page(
 })
 
 
+@router.get("/api/user/{user_id}/reviews")
+async def get_user_reviews_api(
+    user_id: int,
+    conn: Connection = Depends(getDB),
+    user: dict = Depends(get_current_user)
+):
+    """
+    回傳 JSON 格式的使用者評價資料
+    供前端 JavaScript Modal 彈窗使用
+    """
+    try:
+        # 1. 取得統計資料
+        stats = await crud.get_user_reputation_stats(conn, user_id)
+        
+        # 2. 取得評價列表
+        reviews = await crud.get_user_received_reviews_public(conn, user_id)
+        
+        # 3. 回傳 JSON
+        return JSONResponse({
+            "stats": {
+                "avg_score": float(stats['avg_score']),
+                "total_count": int(stats['total_count']),
+                "avg_score_1": float(stats['avg_score_1']),
+                "avg_score_2": float(stats['avg_score_2']),
+                "avg_score_3": float(stats['avg_score_3'])
+            },
+            "reviews": [
+                {
+                    "project_title": r['project_title'],
+                    "score_1": r['score_1'],
+                    "score_2": r['score_2'],
+                    "score_3": r['score_3'],
+                    "comment": r['comment'] or "",
+                    "created_at": r['created_at'].isoformat() if r['created_at'] else ""
+                }
+                for r in reviews
+            ]
+        })
+        
+    except Exception as e:
+        print(f"API Error: {e}")
+        return JSONResponse(
+            {"error": "無法載入評價資料"},
+            status_code=500
+        )

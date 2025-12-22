@@ -222,6 +222,21 @@ async def view_user_profile(
         target_user_id, 
         target_user['user_type'].strip()
     )
+
+    # 🎯 [修正] 加入維度標籤定義
+    # 判斷被查看者的角色，決定使用哪組標籤
+    if target_user['user_type'].strip() == 'contractor':
+        labels = {
+        "s1": "產出品質",
+        "s2": "執行效率", 
+        "s3": "合作態度"
+        }
+    else:  # client
+        labels = {
+        "s1": "需求合理性",
+        "s2": "驗收難度",
+        "s3": "合作態度"
+        }
     
     # 5. 🆕 取得活躍度
     activity = await crud.get_user_activity_score(conn, target_user_id)
@@ -232,6 +247,7 @@ async def view_user_profile(
         "target_user": target_user, # 被查看的人
         "stats": stats,
         "reviews": reviews,
+        "labels": labels,
         "ranking": ranking,      # 🆕 新增
         "activity": activity,    # 🆕 新增
         "is_self": False
