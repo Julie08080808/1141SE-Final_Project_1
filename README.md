@@ -9,7 +9,7 @@ https://hackmd.io/@Weizhe9411/SyyjZSHXZl
 ## 延伸功能二
 ![LINE_ALBUM_期末專題功能_251222_2](https://github.com/user-attachments/assets/0df7038a-5ec5-411d-8b8b-fb3eec388ccb)
 
-https://hackmd.io/oe_4zcKHTxWLe_-dQVvObQ#crudpy
+https://hackmd.io/@chuchu0u0/BkdTTI8mZl
 
 ## 延伸功能三
 ![LINE_ALBUM_期末專題功能_251222_3](https://github.com/user-attachments/assets/bd29ade0-7079-4b8a-a3e2-99e14bb737c0)
